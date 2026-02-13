@@ -8,11 +8,11 @@ This implementation adds support for Ruuvi RAWv2 (Data Format 5) BLE advertiseme
 
 ### Manufacturer Specific Data Structure
 
-The Ruuvi RAWv2 format uses Manufacturer Specific Data (AD Type 0xFF) with the following structure:
+The Ruuvi RAWv2 format uses Manufacturer Specific Data (AD Type 0xFF) with the following structure (28 bytes total):
 
 | Offset | Length | Description | Format | Notes |
 |--------|--------|-------------|--------|-------|
-| 0 | 1 | Size | uint8 | Total size - 1 (23 bytes) |
+| 0 | 1 | Size | uint8 | Total size - 1 (27 bytes) |
 | 1 | 1 | AD Type | uint8 | 0xFF (Manufacturer Specific Data) |
 | 2-3 | 2 | Company ID | uint16 LE | 0x0499 (Ruuvi Innovations Ltd.) |
 | 4 | 1 | Data Format | uint8 | 0x05 (RAWv2) |

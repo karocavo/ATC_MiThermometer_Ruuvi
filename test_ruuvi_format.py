@@ -78,8 +78,8 @@ def test_ruuvi_beacon_format():
     measurement_seq = send_count
     
     # Build the packet
-    # Structure (24 bytes total):
-    # Byte 0: size (23)
+    # Structure (28 bytes total):
+    # Byte 0: size (27 = total size - 1)
     # Byte 1: uid (0xFF - Manufacturer Specific)
     # Bytes 2-3: company_id (0x0499 little-endian -> 0x99, 0x04)
     # Byte 4: data_format (0x05)
@@ -92,7 +92,7 @@ def test_ruuvi_beacon_format():
     # Bytes 17-18: power_info (uint16 little-endian)
     # Byte 19: movement_counter
     # Bytes 20-21: measurement_seq (uint16 little-endian)
-    # Bytes 22-27: MAC address (6 bytes)
+    # Bytes 22-27: MAC address (6 bytes, indices 22, 23, 24, 25, 26, 27)
     
     packet = struct.pack(
         '<BB'  # size, uid
@@ -106,7 +106,7 @@ def test_ruuvi_beacon_format():
         'B'    # movement_counter
         'H'    # measurement_seq (uint16, little-endian)
         '6B',  # MAC address (6 bytes)
-        23,    # size
+        27,    # size (total bytes - 1)
         0xFF,  # uid (GAP_ADTYPE_MANUFACTURER_SPECIFIC)
         0x0499,  # company_id (will be sent as 0x99 0x04 due to little-endian)
         0x05,  # data_format (RAWv2)
@@ -122,7 +122,7 @@ def test_ruuvi_beacon_format():
         *mac_address
     )
     
-    print(f"\nPacket structure (24 bytes):")
+    print(f"\nPacket structure (28 bytes):")
     print(f"  Total size: {len(packet)} bytes")
     print(f"  Hex: {packet.hex(' ')}")
     

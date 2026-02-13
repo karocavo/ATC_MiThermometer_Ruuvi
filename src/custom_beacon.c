@@ -158,14 +158,13 @@ void ruuvi_data_beacon(void) {
 	padv_ruuvi_rawv2_t p = (padv_ruuvi_rawv2_t)&adv_buf.data;
 	p->size = sizeof(adv_ruuvi_rawv2_t) - 1;
 	p->uid = GAP_ADTYPE_MANUFACTURER_SPECIFIC; // 0xFF - Manufacturer Specific Data
-	p->company_id = ADV_RUUVI_COMPANY_ID; // 0x0499 (transmitted as 0x9904 little-endian)
+	p->company_id = ADV_RUUVI_COMPANY_ID; // 0x0499 (transmitted as 0x99 0x04 little-endian)
 	p->data_format = 0x05; // RAWv2 / Data Format 5
 	
 	// Temperature: int16, signed, resolution 0.005 °C
 	// measured_data.temp is in 0.01 °C units
 	// Ruuvi format: temp_value = temperature / 0.005
-	// Conversion: (temp * 0.01) / 0.005 = temp * 2 = temp / 0.5
-	// So: ruuvi_temp = measured_data.temp * 2
+	// Conversion: (temp * 0.01) / 0.005 = temp * 2
 	p->temperature = (s16)(measured_data.temp * 2);
 	
 	// Humidity: uint16, resolution 0.0025%
