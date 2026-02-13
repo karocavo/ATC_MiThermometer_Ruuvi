@@ -2904,7 +2904,10 @@ GPIO_D7 - SDA
 #ifndef USE_BTHOME_BEACON
 #define USE_BTHOME_BEACON	1 // = 1 BTHome v2 https://bthome.io/
 #endif
-#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) == 0
+#ifndef USE_RUUVI_BEACON
+#define USE_RUUVI_BEACON	1 // = 1 Ruuvi RAWv2 (Data Format 5)
+#endif
+#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) == 0
 #define USE_BTHOME_BEACON	1 // = 1 BTHome v2 https://bthome.io/
 #elif (USE_CUSTOM_BEACON || USE_MIHOME_BEACON || USE_ATC_BEACON) && defined(GPIO_RDS2)
 #warning "Cusrom or ATC or MiHome beacon not support RDS2!"

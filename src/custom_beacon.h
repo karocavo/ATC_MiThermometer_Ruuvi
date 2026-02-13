@@ -10,6 +10,8 @@
 
 #define ADV_CUSTOM_UUID16 0x181A // 16-bit UUID Service 0x181A Environmental Sensing
 
+#define ADV_RUUVI_COMPANY_ID 0x0499 // Ruuvi Innovations Ltd. Company ID (transmitted as 0x9904 little-endian)
+
 #define ADV_UUID16_DigitalStateBits	0x2A56 // 16-bit UUID Digital bits, Out bits control (LEDs control)
 #define ADV_UUID16_AnalogOutValues	0x2A58 // 16-bit UUID Analog values (DACs control)
 #define ADV_UUID16_Aggregate		0x2A5A // 16-bit UUID Aggregate, The Aggregate Input is an aggregate of the Digital Input Characteristic value (if available) and ALL Analog Inputs available.
@@ -83,9 +85,30 @@ typedef struct __attribute__((packed)) _adv_atc_enc_t {
 	u8		mic[4];		//@8..11
 } adv_atc_enc_t, * padv_atc_enc_t;
 
+/* Ruuvi RAWv2 (Data Format 5) beacon struct */
+// Manufacturer Specific Data format for Ruuvi
+// https://github.com/ruuvi/ruuvi-sensor-protocols
+typedef struct __attribute__((packed)) _adv_ruuvi_rawv2_t {
+	u8		size;			// total size - 1
+	u8		uid;			// = 0xFF, GAP_ADTYPE_MANUFACTURER_SPECIFIC
+	u16		company_id;		// = 0x0499 (transmitted as 0x9904 little-endian)
+	u8		data_format;	// = 0x05 (RAWv2 / Data Format 5)
+	s16		temperature;	// int16, signed, resolution 0.005 °C, range -163.835..+163.835 °C
+	u16		humidity;		// uint16, resolution 0.0025%, range 0..163.835%
+	u16		pressure;		// uint16, offset -50000 Pa (not used, set to 0xFFFF)
+	s16		accel_x;		// int16, 0.001 g (not used, set to 0)
+	s16		accel_y;		// int16, 0.001 g (not used, set to 0)
+	s16		accel_z;		// int16, 0.001 g (not used, set to 0)
+	u16		power_info;		// bits 11..5: battery voltage (mV) + 1600, bits 4..0: TX power (dBm) + 40
+	u8		movement_counter; // movement counter (not used, set to 0)
+	u16		measurement_seq; // measurement sequence number
+	u8		MAC[6];			// MAC address [0] - lo, .. [5] - hi
+} adv_ruuvi_rawv2_t, * padv_ruuvi_rawv2_t;
+
 
 void pvvx_data_beacon(void);
 void atc_data_beacon(void);
+void ruuvi_data_beacon(void);
 #if (DEV_SERVICES & SERVICE_RDS)
 void pvvx_event_beacon(u8 n); // n = RDS_TYPES
 void default_event_beacon(void);

@@ -6,7 +6,7 @@
  */
 #include "tl_common.h"
 #include "app_config.h"
-#if (USE_CUSTOM_BEACON || USE_ATC_BEACON)
+#if (USE_CUSTOM_BEACON || USE_ATC_BEACON || USE_RUUVI_BEACON)
 #include "ble.h"
 #include "app.h"
 #include "trigger.h"
@@ -151,6 +151,64 @@ void atc_data_beacon(void) {
 }
 #endif
 
+#if USE_RUUVI_BEACON
+_attribute_ram_code_
+__attribute__((optimize("-Os")))
+void ruuvi_data_beacon(void) {
+	padv_ruuvi_rawv2_t p = (padv_ruuvi_rawv2_t)&adv_buf.data;
+	p->size = sizeof(adv_ruuvi_rawv2_t) - 1;
+	p->uid = GAP_ADTYPE_MANUFACTURER_SPECIFIC; // 0xFF - Manufacturer Specific Data
+	p->company_id = ADV_RUUVI_COMPANY_ID; // 0x0499 (transmitted as 0x9904 little-endian)
+	p->data_format = 0x05; // RAWv2 / Data Format 5
+	
+	// Temperature: int16, signed, resolution 0.005 °C
+	// measured_data.temp is in 0.01 °C units
+	// Ruuvi format: temp_value = temperature / 0.005
+	// Conversion: (temp * 0.01) / 0.005 = temp * 2 = temp / 0.5
+	// So: ruuvi_temp = measured_data.temp * 2
+	p->temperature = (s16)(measured_data.temp * 2);
+	
+	// Humidity: uint16, resolution 0.0025%
+	// measured_data.humi is in 0.01 % units
+	// Ruuvi format: humi_value = humidity / 0.0025
+	// Conversion: (humi * 0.01) / 0.0025 = humi * 4
+	// So: ruuvi_humi = measured_data.humi * 4
+	p->humidity = (u16)(measured_data.humi * 4);
+	
+	// Pressure: not available on LYWSD03MMC, use sentinel value
+	p->pressure = 0xFFFF;
+	
+	// Acceleration: not available, set to 0
+	p->accel_x = 0;
+	p->accel_y = 0;
+	p->accel_z = 0;
+	
+	// Power info: bits 11..5: battery voltage (mV) + 1600, bits 4..0: TX power (dBm) + 40
+	// Battery voltage in mV, subtract 1600 and shift to bits 11..5
+	// For TX power, we'll use 0 dBm as default, so (0 + 40) = 40 = 0x28
+#if USE_AVERAGE_BATTERY
+	u16 battery_mv = measured_data.average_battery_mv;
+#else
+	u16 battery_mv = measured_data.battery_mv;
+#endif
+	// Clamp battery voltage to valid range (1600-3646 mV for 11 bits)
+	if (battery_mv < 1600) battery_mv = 1600;
+	if (battery_mv > 3646) battery_mv = 3646;
+	u16 battery_shifted = ((battery_mv - 1600) << 5) & 0xFFE0;
+	u16 tx_power_bits = 40 & 0x1F; // TX power 0 dBm + 40 = 40
+	p->power_info = battery_shifted | tx_power_bits;
+	
+	// Movement counter: not used
+	p->movement_counter = 0;
+	
+	// Measurement sequence number: use send_count
+	p->measurement_seq = (u16)adv_buf.send_count;
+	
+	// MAC address: copy in little-endian format (lo to hi)
+	memcpy(p->MAC, mac_public, 6);
+}
+#endif
+
 #if (DEV_SERVICES & SERVICE_RDS)
 
 typedef struct __attribute__((packed)) _ext_adv_cnt_t {
@@ -207,4 +265,4 @@ void pvvx_encrypt_event_beacon(u8 n){
 
 #endif // (DEV_SERVICES & SERVICE_RDS)
 #endif // #if (DEV_SERVICES & SERVICE_BINDKEY)
-#endif // (USE_CUSTOM_BEACON || USE_ATC_BEACON)
+#endif // (USE_CUSTOM_BEACON || USE_ATC_BEACON || USE_RUUVI_BEACON)

@@ -34,7 +34,8 @@ enum {
 	ADV_TYPE_ATC = 0,
 	ADV_TYPE_PVVX,
 	ADV_TYPE_MI,
-	ADV_TYPE_BTHOME // (default)
+	ADV_TYPE_BTHOME, // (default)
+	ADV_TYPE_RUUVI
 } ADV_TYPE_ENUM;
 
 #define ADV_TYPE_DEFAULT	ADV_TYPE_BTHOME
@@ -52,7 +53,7 @@ enum {
 
 typedef struct __attribute__((packed)) _cfg_t {
 	struct __attribute__((packed)) {
-		u8 advertising_type	: 2; // 0 - atc1441, 1 - Custom (pvvx), 2 - Mi, 3 - BTHome
+		u8 advertising_type	: 3; // 0 - atc1441, 1 - Custom (pvvx), 2 - Mi, 3 - BTHome, 4 - Ruuvi
 		u8 comfort_smiley	: 1;
 #if (DEVICE_TYPE == DEVICE_MJWSD05MMC) || (DEVICE_TYPE == DEVICE_MJWSD05MMC_EN)
 		u8 x100				: 1;

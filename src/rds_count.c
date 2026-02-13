@@ -88,12 +88,12 @@ void rds_init(void) {
 __attribute__((optimize("-Os")))
 static void set_rds_adv_data(void) {
 	adv_buf.send_count++;
-#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 	int advertising_type = cfg.flg.advertising_type;
 #endif
 #if (DEV_SERVICES & SERVICE_BINDKEY)
 	if (cfg.flg2.adv_crypto) {
-#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 #if USE_CUSTOM_BEACON
 		if (advertising_type == ADV_TYPE_PVVX)
 			pvvx_encrypt_event_beacon(rds.event);
@@ -114,14 +114,19 @@ static void set_rds_adv_data(void) {
 			default_event_beacon();
 		else
 #endif
+#if USE_RUUVI_BEACON
+		if (advertising_type == ADV_TYPE_RUUVI)
+			default_event_beacon();
+		else
+#endif
 		{}
 #else
 		bthome_encrypt_event_beacon(rds.event);
-#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 	} else
 #endif //	#if (DEV_SERVICES & SERVICE_BINDKEY)
 	{
-#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 #if USE_CUSTOM_BEACON
 		if (advertising_type == ADV_TYPE_PVVX)
 			pvvx_event_beacon(rds.event);
@@ -142,10 +147,15 @@ static void set_rds_adv_data(void) {
 			default_event_beacon();
 		else
 #endif
+#if USE_RUUVI_BEACON
+		if (advertising_type == ADV_TYPE_RUUVI)
+			default_event_beacon();
+		else
+#endif
 		{}
 #else
 		bthome_event_beacon(rds.event);
-#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 	}
 	adv_buf.update_count = 0; // refresh adv_buf.data in next set_adv_data()
 	load_adv_data();
