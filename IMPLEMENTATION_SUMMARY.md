@@ -3,20 +3,25 @@
 ## Overview
 Successfully implemented Ruuvi RAWv2 (Data Format 5) BLE advertisement format support for the ATC_MiThermometer firmware. This feature enables compatibility with Victron Cerbo GX BLE scanning for RuuviTags and other Ruuvi-compatible receivers.
 
+**CRITICAL UPDATE:** Fixed endianness to match Ruuvi specification - all multi-byte fields are now correctly encoded as **BIG-ENDIAN (MSB first)** as required by the official Ruuvi RAWv2 protocol.
+
 ## Files Modified
 
 ### Core Implementation
 1. **src/custom_beacon.h**
    - Added `ADV_RUUVI_COMPANY_ID` constant (0x0499)
+   - Added byte-swap helper macros: `U16_TO_BIG_ENDIAN`, `S16_TO_BIG_ENDIAN`
    - Defined `adv_ruuvi_rawv2_t` structure (28 bytes)
+   - **Changed multi-byte fields to byte arrays** for explicit big-endian control
    - Added function declaration for `ruuvi_data_beacon()`
 
 2. **src/custom_beacon.c**
    - Implemented `ruuvi_data_beacon()` function
-   - Added temperature conversion with overflow protection (-163.835°C to +163.835°C)
-   - Added humidity conversion with overflow protection (0% to 100%)
-   - Implemented battery voltage encoding (1600-3646 mV range)
-   - Implemented TX power encoding (0 dBm default, 2dBm steps)
+   - **Added explicit big-endian encoding** for all multi-byte fields
+   - Temperature conversion with overflow protection (-163.835°C to +163.835°C)
+   - Humidity conversion with overflow protection (0% to 100%)
+   - Battery voltage encoding (1600-3646 mV range)
+   - TX power encoding (0 dBm default, 2dBm steps)
    - Set appropriate sentinel values for unused fields
 
 3. **src/app_config.h**
@@ -50,11 +55,35 @@ Successfully implemented Ruuvi RAWv2 (Data Format 5) BLE advertisement format su
 
 ## Technical Details
 
+### Endianness - CRITICAL
+
+**The Ruuvi RAWv2 specification requires all multi-byte fields to be BIG-ENDIAN (MSB first).** This is explicitly stated in the official Ruuvi documentation:
+
+> "All fields are MSB first 2-complement, i.e. 0xFC18 is read as -1000 and 0x03E8 is read as 1000."
+
+The implementation uses:
+- Byte array fields instead of native u16/s16 types
+- Explicit byte-swap macros: `U16_TO_BIG_ENDIAN()`, `S16_TO_BIG_ENDIAN()`
+- Manual MSB-first encoding: `arr[0] = (val >> 8); arr[1] = val;`
+
+**Exception:** Company ID (0x0499) uses little-endian per BLE specification for manufacturer ID field.
+
 ### Packet Structure
 - Total size: 28 bytes
 - Size field: 27 (total - 1)
 - Manufacturer ID: 0x0499 (transmitted as 0x99 0x04 little-endian)
 - Data format: 0x05 (RAWv2)
+- All data fields: BIG-ENDIAN (temperature, humidity, pressure, acceleration, power_info, sequence)
+
+### Example Packet (Big-Endian)
+```
+1BFF990405125C5654FFFF000000000000961400007B112233445566
+```
+
+Compare with incorrect little-endian version:
+- Temperature: `12 5C` (big-endian, correct) vs `5C 12` (little-endian, wrong)
+- Humidity: `56 54` (big-endian, correct) vs `54 56` (little-endian, wrong)
+- Power info: `96 14` (big-endian, correct) vs `14 96` (little-endian, wrong)
 
 ### Data Conversions
 
@@ -104,13 +133,17 @@ Successfully implemented Ruuvi RAWv2 (Data Format 5) BLE advertisement format su
 
 ### Test Script Results
 ```
-Temperature: 23.50°C → 4700 (Ruuvi RAWv2) ✓
-Humidity: 55.25% → 22100 (Ruuvi RAWv2) ✓
-Battery: 2800 mV → correctly encoded in power_info ✓
-TX Power: 0 dBm → correctly encoded as 20 ✓
-Packet size: 28 bytes (size field = 27) ✓
-Company ID: 0x99 0x04 (little-endian) ✓
-Data format: 0x05 ✓
+✓ Temperature: 23.50°C → 4700 (0x125C big-endian) ✓
+✓ Humidity: 55.25% → 22100 (0x5654 big-endian) ✓
+✓ Battery: 2800 mV → 0x9614 (big-endian) correctly encoded ✓
+✓ TX Power: 0 dBm → 20 encoded in 2dBm steps ✓
+✓ Packet size: 28 bytes (size field = 27) ✓
+✓ Company ID: 0x99 0x04 (little-endian per BLE spec) ✓
+✓ Data format: 0x05 ✓
+✓ Big-endian verification:
+  - Temperature bytes: 12 5C (big-endian decode: 4700 = 23.500°C) ✓
+  - Humidity bytes: 56 54 (big-endian decode: 22100 = 55.250%) ✓
+  - Power info bytes: 96 14 (big-endian decode: battery 2800mV, TX 0dBm) ✓
 ```
 
 ### Code Review

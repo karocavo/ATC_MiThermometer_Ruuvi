@@ -130,11 +130,18 @@ power_info = battery_shifted | tx_power_bits;
 
 ### Important: Configuration Compatibility Note
 
-**This firmware version changes the internal configuration structure.** The `advertising_type` field was expanded from 2 to 3 bits to accommodate the new Ruuvi format option. While the structure still fits within the same memory layout, if you are upgrading from a previous firmware version:
+**This firmware version changes the internal configuration structure.** The `advertising_type` field was expanded from 2 to 3 bits to accommodate the new Ruuvi format option. 
 
-- Your existing configuration may need to be reset
-- After flashing this firmware, verify your advertisement type setting in the configuration interface
-- If you experience unexpected behavior, perform a factory reset of the configuration
+**Configuration Migration:**
+- The structure still fits within the same memory layout
+- After flashing this firmware, verify your advertisement type setting
+- If you experience unexpected behavior, perform a configuration reset
+- Future versions may include automatic migration logic based on `EEP_SUP_VER`
+
+**For Developers:**
+- Consider incrementing `EEP_SUP_VER` in `app_config.h` to force config reset
+- The VERSION field is currently 0x57 (v5.7 in BCD format)
+- Migration logic could check old `advertising_type` values (0-3) and validate
 
 ### Selecting Ruuvi Format
 
@@ -149,6 +156,76 @@ The Ruuvi beacon support is controlled by the `USE_RUUVI_BEACON` flag in `app_co
 #define USE_RUUVI_BEACON	1 // = 1 Ruuvi RAWv2 (Data Format 5)
 #endif
 ```
+
+## Limitations
+
+1. **No Pressure Sensor**: The LYWSD03MMC does not have a pressure sensor, so the pressure field is set to the sentinel value 0xFFFF.
+
+2. **No Accelerometer**: The device does not have an accelerometer, so all acceleration fields are set to 0.
+
+3. **No Movement Counter**: The movement counter field is not applicable and is set to 0.
+
+4. **Fixed TX Power**: The TX power is fixed at 0 dBm in this implementation.
+
+## Future Enhancements
+
+### Extended Temperature Range
+Currently, the implementation clamps temperature to ±163.83°C (input range ±16383 in 0.01°C units) to prevent overflow. The Ruuvi RAWv2 format theoretically supports the full ±163.835°C range, and this could be expanded if needed for:
+- External high-temperature sensor support (e.g., via header connector)
+- Industrial or specialized applications
+- The full range would require input values up to ±32767 after the *2 conversion
+
+### Runtime Configuration
+Currently, the Ruuvi beacon format is controlled by:
+- **Compile-time**: `USE_RUUVI_BEACON` flag in `app_config.h`
+- **Runtime**: Selection via `advertising_type` field (value 4)
+
+Future enhancements could add:
+- Web UI toggle for enabling/disabling Ruuvi format
+- Flash-based runtime configuration
+- No recompilation required for format changes
+
+### Alternating Advertisements
+For maximum compatibility, future versions could support alternating between different advertisement formats:
+- **Ruuvi RAWv2** for Victron Cerbo GX compatibility
+- **BTHome v2** for Home Assistant integration
+- Alternation could occur on a per-packet or time-based schedule
+- Would require coordination with existing beacon rotation logic
+
+### MAC Address Handling
+The MAC address is embedded in the advertisement payload:
+- Automatically populated from device MAC via `mac_public` variable
+- Cannot be changed without reflashing firmware
+- OTA updates via WebUI flasher tool maintain the same MAC address
+- MAC is part of the BLE controller, not changeable at application level
+- For testing with different MACs, would require hardware programming
+
+## Example Victron Cerbo GX Compatible Packet
+
+Here's a complete example packet that should be recognized by Victron Cerbo GX:
+
+```
+1BFF990405125C5654FFFF000000000000961400007B112233445566
+```
+
+Breakdown:
+- `1B` - Size (27 bytes)
+- `FF` - Manufacturer Specific Data
+- `9904` - Ruuvi Company ID (0x0499 little-endian)
+- `05` - Data Format 5 (RAWv2)
+- `125C` - Temperature: 4700 = 23.50°C (big-endian)
+- `5654` - Humidity: 22100 = 55.25% (big-endian)
+- `FFFF` - Pressure: unavailable sentinel
+- `000000000000` - Acceleration X/Y/Z: all 0
+- `9614` - Power info: battery 2800mV, TX 0dBm (big-endian)
+- `00` - Movement counter: 0
+- `007B` - Sequence: 123 (big-endian)
+- `112233445566` - MAC address
+
+You can verify this packet structure using:
+- **nRF Connect** mobile app (Nordic Semiconductor)
+- **Wireshark** with Bluetooth LE capture
+- **Victron Cerbo GX** BLE scanner (should detect as RuuviTag)
 
 ## Limitations
 
