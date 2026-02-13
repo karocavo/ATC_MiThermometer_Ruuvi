@@ -183,19 +183,20 @@ void ruuvi_data_beacon(void) {
 	p->accel_y = 0;
 	p->accel_z = 0;
 	
-	// Power info: bits 11..5: battery voltage (mV) + 1600, bits 4..0: TX power (dBm) + 40
+	// Power info: bits 11..5: battery voltage above 1600mV in 1mV steps (11 bits)
+	//             bits 4..0: TX power in 2dBm steps, offset -40dBm (5 bits, range -40 to +22 dBm)
 	// Battery voltage in mV, subtract 1600 and shift to bits 11..5
-	// For TX power, we'll use 0 dBm as default, so (0 + 40) = 40 = 0x28
+	// For TX power: 0 dBm -> (0 + 40) / 2 = 20
 #if USE_AVERAGE_BATTERY
 	u16 battery_mv = measured_data.average_battery_mv;
 #else
 	u16 battery_mv = measured_data.battery_mv;
 #endif
-	// Clamp battery voltage to valid range (1600-3646 mV for 11 bits)
+	// Clamp battery voltage to valid range (1600-3646 mV for 11 bits: 0-2046)
 	if (battery_mv < 1600) battery_mv = 1600;
 	if (battery_mv > 3646) battery_mv = 3646;
 	u16 battery_shifted = ((battery_mv - 1600) << 5) & 0xFFE0;
-	u16 tx_power_bits = 40 & 0x1F; // TX power 0 dBm + 40 = 40
+	u16 tx_power_bits = 20 & 0x1F; // TX power 0 dBm: (0 + 40) / 2 = 20
 	p->power_info = battery_shifted | tx_power_bits;
 	
 	// Movement counter: not used
