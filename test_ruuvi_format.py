@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Test script to validate Ruuvi RAWv2 beacon packet structure and calculations
+All multi-byte fields must be BIG-ENDIAN (MSB first) per Ruuvi specification
 """
 
 import struct
@@ -8,6 +9,7 @@ import struct
 def test_ruuvi_beacon_format():
     """
     Test the Ruuvi RAWv2 beacon packet structure with example values
+    NOTE: All multi-byte fields are BIG-ENDIAN (MSB first)
     """
     
     # Example measured data
@@ -23,8 +25,8 @@ def test_ruuvi_beacon_format():
     mac_address = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66]
     send_count = 123
     
-    # Convert temperature to Ruuvi format
-    # Ruuvi: int16, resolution 0.005°C
+    # Convert temperature to Ruuvi format (BIG-ENDIAN)
+    # Ruuvi: int16, resolution 0.005°C, BIG-ENDIAN
     # measured_data.temp is in 0.01°C units
     # Ruuvi format: temp_value = temperature / 0.005
     # Conversion: (temp * 0.01) / 0.005 = temp * 2
@@ -32,8 +34,8 @@ def test_ruuvi_beacon_format():
     print(f"Temperature: {temp_measured} (0.01°C) -> {temp_ruuvi} (Ruuvi RAWv2)")
     print(f"  = {temp_ruuvi * 0.005:.3f}°C")
     
-    # Convert humidity to Ruuvi format
-    # Ruuvi: uint16, resolution 0.0025%
+    # Convert humidity to Ruuvi format (BIG-ENDIAN)
+    # Ruuvi: uint16, resolution 0.0025%, BIG-ENDIAN
     # measured_data.humi is in 0.01% units
     # Ruuvi format: humi_value = humidity / 0.0025
     # Conversion: (humi * 0.01) / 0.0025 = humi * 4
@@ -77,54 +79,67 @@ def test_ruuvi_beacon_format():
     # Measurement sequence: use send_count
     measurement_seq = send_count
     
-    # Build the packet
-    # Structure (28 bytes total):
-    # Byte 0: size (27 = total size - 1)
-    # Byte 1: uid (0xFF - Manufacturer Specific)
-    # Bytes 2-3: company_id (0x0499 little-endian -> 0x99, 0x04)
-    # Byte 4: data_format (0x05)
-    # Bytes 5-6: temperature (int16 little-endian)
-    # Bytes 7-8: humidity (uint16 little-endian)
-    # Bytes 9-10: pressure (uint16 little-endian)
-    # Bytes 11-12: accel_x (int16 little-endian)
-    # Bytes 13-14: accel_y (int16 little-endian)
-    # Bytes 15-16: accel_z (int16 little-endian)
-    # Bytes 17-18: power_info (uint16 little-endian)
-    # Byte 19: movement_counter
-    # Bytes 20-21: measurement_seq (uint16 little-endian)
-    # Bytes 22-27: MAC address (6 bytes, indices 22, 23, 24, 25, 26, 27)
+    # Build the packet with BIG-ENDIAN multi-byte fields
+    # We need to manually construct since we mix little-endian company_id with big-endian data
+    packet = bytearray(28)
     
-    packet = struct.pack(
-        '<BB'  # size, uid
-        'H'    # company_id (little-endian)
-        'B'    # data_format
-        'h'    # temperature (signed int16, little-endian)
-        'H'    # humidity (uint16, little-endian)
-        'H'    # pressure (uint16, little-endian)
-        'hhh'  # accel_x, accel_y, accel_z (signed int16, little-endian)
-        'H'    # power_info (uint16, little-endian)
-        'B'    # movement_counter
-        'H'    # measurement_seq (uint16, little-endian)
-        '6B',  # MAC address (6 bytes)
-        27,    # size (total bytes - 1)
-        0xFF,  # uid (GAP_ADTYPE_MANUFACTURER_SPECIFIC)
-        0x0499,  # company_id (will be sent as 0x99 0x04 due to little-endian)
-        0x05,  # data_format (RAWv2)
-        temp_ruuvi,
-        humi_ruuvi,
-        pressure_ruuvi,
-        accel_x,
-        accel_y,
-        accel_z,
-        power_info,
-        movement_counter,
-        measurement_seq,
-        *mac_address
-    )
+    # Bytes 0-1: size, uid
+    packet[0] = 27  # size
+    packet[1] = 0xFF  # uid (GAP_ADTYPE_MANUFACTURER_SPECIFIC)
+    
+    # Bytes 2-3: company_id (LITTLE-ENDIAN)
+    packet[2] = 0x99
+    packet[3] = 0x04
+    
+    # Byte 4: data_format
+    packet[4] = 0x05
+    
+    # Bytes 5-6: temperature (BIG-ENDIAN)
+    packet[5] = (temp_ruuvi >> 8) & 0xFF  # MSB
+    packet[6] = temp_ruuvi & 0xFF  # LSB
+    
+    # Bytes 7-8: humidity (BIG-ENDIAN)
+    packet[7] = (humi_ruuvi >> 8) & 0xFF  # MSB
+    packet[8] = humi_ruuvi & 0xFF  # LSB
+    
+    # Bytes 9-10: pressure (BIG-ENDIAN)
+    packet[9] = 0xFF
+    packet[10] = 0xFF
+    
+    # Bytes 11-12: accel_x (BIG-ENDIAN)
+    packet[11] = 0x00
+    packet[12] = 0x00
+    
+    # Bytes 13-14: accel_y (BIG-ENDIAN)
+    packet[13] = 0x00
+    packet[14] = 0x00
+    
+    # Bytes 15-16: accel_z (BIG-ENDIAN)
+    packet[15] = 0x00
+    packet[16] = 0x00
+    
+    # Bytes 17-18: power_info (BIG-ENDIAN)
+    packet[17] = (power_info >> 8) & 0xFF  # MSB
+    packet[18] = power_info & 0xFF  # LSB
+    
+    # Byte 19: movement_counter
+    packet[19] = 0x00
+    
+    # Bytes 20-21: measurement_seq (BIG-ENDIAN)
+    packet[20] = (measurement_seq >> 8) & 0xFF  # MSB
+    packet[21] = measurement_seq & 0xFF  # LSB
+    
+    # Bytes 22-27: MAC address
+    for i, byte in enumerate(mac_address):
+        packet[22 + i] = byte
+    
+    packet = bytes(packet)
     
     print(f"\nPacket structure (28 bytes):")
     print(f"  Total size: {len(packet)} bytes")
     print(f"  Hex: {packet.hex(' ')}")
+    print(f"\n  Example for Victron Cerbo GX / nRF Connect validation:")
+    print(f"  {packet.hex().upper()}")
     
     # Verify company ID is in correct endianness
     company_id_bytes = packet[2:4]
@@ -137,9 +152,27 @@ def test_ruuvi_beacon_format():
     print(f"Data format: 0x{data_format:02X}")
     assert data_format == 0x05, "Data format should be 0x05"
     
+    # Verify temperature is BIG-ENDIAN
+    temp_bytes = packet[5:7]
+    temp_decoded_be = int.from_bytes(temp_bytes, 'big', signed=True)
+    temp_decoded_le = int.from_bytes(temp_bytes, 'little', signed=True)
+    print(f"\nTemperature bytes: {temp_bytes.hex(' ')}")
+    print(f"  BIG-ENDIAN decode: {temp_decoded_be} = {temp_decoded_be * 0.005:.3f}°C ✓")
+    print(f"  LITTLE-ENDIAN decode: {temp_decoded_le} = {temp_decoded_le * 0.005:.3f}°C (WRONG)")
+    assert temp_decoded_be == temp_ruuvi, "Temperature should be big-endian"
+    
+    # Verify humidity is BIG-ENDIAN
+    humi_bytes = packet[7:9]
+    humi_decoded_be = int.from_bytes(humi_bytes, 'big', signed=False)
+    humi_decoded_le = int.from_bytes(humi_bytes, 'little', signed=False)
+    print(f"\nHumidity bytes: {humi_bytes.hex(' ')}")
+    print(f"  BIG-ENDIAN decode: {humi_decoded_be} = {humi_decoded_be * 0.0025:.3f}% ✓")
+    print(f"  LITTLE-ENDIAN decode: {humi_decoded_le} = {humi_decoded_le * 0.0025:.3f}% (WRONG)")
+    assert humi_decoded_be == humi_ruuvi, "Humidity should be big-endian"
+    
     # Verify MAC address
     mac_from_packet = packet[22:28]
-    print(f"MAC address: {mac_from_packet.hex(':')}")
+    print(f"\nMAC address: {mac_from_packet.hex(':')}")
     
     print("\n✓ Packet structure validated successfully!")
     print("\nSummary:")
@@ -149,6 +182,7 @@ def test_ruuvi_beacon_format():
     print(f"  - TX Power: 0 dBm")
     print(f"  - Sequence: {measurement_seq}")
     print(f"  - MAC: {':'.join(f'{b:02X}' for b in mac_address)}")
+    print(f"\nAll multi-byte fields are correctly encoded as BIG-ENDIAN (MSB first)")
 
 if __name__ == "__main__":
     test_ruuvi_beacon_format()

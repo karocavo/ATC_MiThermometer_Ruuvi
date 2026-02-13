@@ -6,26 +6,36 @@ This implementation adds support for Ruuvi RAWv2 (Data Format 5) BLE advertiseme
 
 ## Ruuvi RAWv2 Format Specification
 
+### Critical Note: BIG-ENDIAN Encoding
+
+**IMPORTANT:** According to the official Ruuvi RAWv2 specification, **ALL multi-byte fields MUST be transmitted in big-endian format (MSB first)**. This is explicitly stated in the Ruuvi protocol documentation:
+
+> "All fields are MSB first 2-complement, i.e. 0xFC18 is read as -1000 and 0x03E8 is read as 1000. Values are 2-complement int16_t, MSB first."
+
+This differs from many BLE implementations that use little-endian. The implementation uses byte arrays and explicit byte-order conversion macros to ensure correct big-endian encoding.
+
 ### Manufacturer Specific Data Structure
 
 The Ruuvi RAWv2 format uses Manufacturer Specific Data (AD Type 0xFF) with the following structure (28 bytes total):
 
-| Offset | Length | Description | Format | Notes |
-|--------|--------|-------------|--------|-------|
-| 0 | 1 | Size | uint8 | Total size - 1 (27 bytes) |
-| 1 | 1 | AD Type | uint8 | 0xFF (Manufacturer Specific Data) |
-| 2-3 | 2 | Company ID | uint16 LE | 0x0499 (Ruuvi Innovations Ltd.) |
-| 4 | 1 | Data Format | uint8 | 0x05 (RAWv2) |
-| 5-6 | 2 | Temperature | int16 LE | Resolution: 0.005°C |
-| 7-8 | 2 | Humidity | uint16 LE | Resolution: 0.0025% |
-| 9-10 | 2 | Pressure | uint16 LE | Not used, set to 0xFFFF |
-| 11-12 | 2 | Acceleration X | int16 LE | Not used, set to 0 |
-| 13-14 | 2 | Acceleration Y | int16 LE | Not used, set to 0 |
-| 15-16 | 2 | Acceleration Z | int16 LE | Not used, set to 0 |
-| 17-18 | 2 | Power Info | uint16 LE | See below |
-| 19 | 1 | Movement Counter | uint8 | Not used, set to 0 |
-| 20-21 | 2 | Measurement Seq | uint16 LE | Measurement count |
-| 22-27 | 6 | MAC Address | 6 bytes | Device MAC address |
+| Offset | Length | Description | Format | Endianness | Notes |
+|--------|--------|-------------|--------|------------|-------|
+| 0 | 1 | Size | uint8 | N/A | Total size - 1 (27 bytes) |
+| 1 | 1 | AD Type | uint8 | N/A | 0xFF (Manufacturer Specific Data) |
+| 2-3 | 2 | Company ID | uint16 | **LITTLE** | 0x0499 (Ruuvi Innovations Ltd.) transmitted as 0x99 0x04 |
+| 4 | 1 | Data Format | uint8 | N/A | 0x05 (RAWv2) |
+| 5-6 | 2 | Temperature | int16 | **BIG** | Resolution: 0.005°C |
+| 7-8 | 2 | Humidity | uint16 | **BIG** | Resolution: 0.0025% |
+| 9-10 | 2 | Pressure | uint16 | **BIG** | Not used, set to 0xFFFF |
+| 11-12 | 2 | Acceleration X | int16 | **BIG** | Not used, set to 0 |
+| 13-14 | 2 | Acceleration Y | int16 | **BIG** | Not used, set to 0 |
+| 15-16 | 2 | Acceleration Z | int16 | **BIG** | Not used, set to 0 |
+| 17-18 | 2 | Power Info | uint16 | **BIG** | See below |
+| 19 | 1 | Movement Counter | uint8 | N/A | Not used, set to 0 |
+| 20-21 | 2 | Measurement Seq | uint16 | **BIG** | Measurement count |
+| 22-27 | 6 | MAC Address | 6 bytes | LITTLE | Device MAC address (BLE standard) |
+
+**Note:** Only the Company ID (per BLE specification) and MAC address use little-endian. All Ruuvi data fields use big-endian.
 
 ### Power Info Field (bytes 17-18)
 
