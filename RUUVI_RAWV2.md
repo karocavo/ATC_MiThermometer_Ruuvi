@@ -227,16 +227,6 @@ You can verify this packet structure using:
 - **Wireshark** with Bluetooth LE capture
 - **Victron Cerbo GX** BLE scanner (should detect as RuuviTag)
 
-## Limitations
-
-1. **No Pressure Sensor**: The LYWSD03MMC does not have a pressure sensor, so the pressure field is set to the sentinel value 0xFFFF.
-
-2. **No Accelerometer**: The device does not have an accelerometer, so all acceleration fields are set to 0.
-
-3. **No Movement Counter**: The movement counter field is not applicable and is set to 0.
-
-4. **Fixed TX Power**: The TX power is fixed at 0 dBm in this implementation.
-
 ## Compatibility
 
 This implementation is designed to be compatible with:
