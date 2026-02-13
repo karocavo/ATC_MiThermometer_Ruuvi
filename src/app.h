@@ -50,6 +50,10 @@ enum {
 // cfg.flg3
 #define MASK_FLG3_WEEKDAY	0x80
 
+// Note: The advertising_type field was expanded from 2 to 3 bits to support Ruuvi format.
+// This changes the memory layout of cfg_t. The structure still fits within the same byte,
+// but stored configuration values may need to be reset after upgrading to this firmware version
+// if the configuration was saved with a previous version using 2-bit advertising_type.
 
 typedef struct __attribute__((packed)) _cfg_t {
 	struct __attribute__((packed)) {

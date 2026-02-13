@@ -47,12 +47,21 @@ The LYWSD03MMC measures temperature in 0.01°C units, while Ruuvi uses 0.005°C 
 // measured_data.temp is in 0.01°C units
 // Ruuvi format: value = temperature / 0.005
 // Conversion: (temp * 0.01) / 0.005 = temp * 2
-ruuvi_temp = measured_data.temp * 2;
+// Valid range check to prevent overflow
+s16 temp_clamped = measured_data.temp;
+if (temp_clamped < -16383) temp_clamped = -16383;
+if (temp_clamped > 16383) temp_clamped = 16383;
+ruuvi_temp = temp_clamped * 2;
 ```
 
 **Example:**
 - Measured: 2350 (23.50°C)
 - Ruuvi: 4700 (23.50°C / 0.005 = 4700)
+
+**Valid Range:**
+- Ruuvi RAWv2: -163.835°C to +163.835°C
+- Input range: -16383 to +16383 (in 0.01°C units)
+- Values outside this range are clamped
 
 ### Humidity Conversion
 
@@ -62,12 +71,20 @@ The LYWSD03MMC measures humidity in 0.01% units, while Ruuvi uses 0.0025% resolu
 // measured_data.humi is in 0.01% units
 // Ruuvi format: value = humidity / 0.0025
 // Conversion: (humi * 0.01) / 0.0025 = humi * 4
-ruuvi_humi = measured_data.humi * 4;
+// Valid range check to prevent overflow
+u16 humi_clamped = measured_data.humi;
+if (humi_clamped > 10000) humi_clamped = 10000;
+ruuvi_humi = humi_clamped * 4;
 ```
 
 **Example:**
 - Measured: 5525 (55.25%)
 - Ruuvi: 22100 (55.25% / 0.0025 = 22100)
+
+**Valid Range:**
+- Ruuvi RAWv2 can encode: 0% to 163.835%
+- Sensor valid range: 0% to 100% (0 to 10000 in 0.01% units)
+- Values above 100% are clamped
 
 ### Battery Voltage Encoding
 
@@ -100,6 +117,14 @@ power_info = battery_shifted | tx_power_bits;
 - Encoded: (0 + 40) / 2 = 20 → 0x14
 
 ## Usage
+
+### Important: Configuration Compatibility Note
+
+**This firmware version changes the internal configuration structure.** The `advertising_type` field was expanded from 2 to 3 bits to accommodate the new Ruuvi format option. While the structure still fits within the same memory layout, if you are upgrading from a previous firmware version:
+
+- Your existing configuration may need to be reset
+- After flashing this firmware, verify your advertisement type setting in the configuration interface
+- If you experience unexpected behavior, perform a factory reset of the configuration
 
 ### Selecting Ruuvi Format
 

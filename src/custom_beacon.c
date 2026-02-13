@@ -165,14 +165,21 @@ void ruuvi_data_beacon(void) {
 	// measured_data.temp is in 0.01 °C units
 	// Ruuvi format: temp_value = temperature / 0.005
 	// Conversion: (temp * 0.01) / 0.005 = temp * 2
-	p->temperature = (s16)(measured_data.temp * 2);
+	// Valid range: -163.835°C to +163.835°C (Ruuvi), which is -16383 to +16383 in measured_data.temp
+	s16 temp_clamped = measured_data.temp;
+	if (temp_clamped < -16383) temp_clamped = -16383;
+	if (temp_clamped > 16383) temp_clamped = 16383;
+	p->temperature = (s16)(temp_clamped * 2);
 	
 	// Humidity: uint16, resolution 0.0025%
 	// measured_data.humi is in 0.01 % units
 	// Ruuvi format: humi_value = humidity / 0.0025
 	// Conversion: (humi * 0.01) / 0.0025 = humi * 4
-	// So: ruuvi_humi = measured_data.humi * 4
-	p->humidity = (u16)(measured_data.humi * 4);
+	// Valid range: 0% to 100% (0 to 10000 in measured_data.humi units)
+	// Ruuvi can actually encode 0-163.835%, but we clamp to 0-100% for sensor validity
+	u16 humi_clamped = (u16)measured_data.humi;
+	if (humi_clamped > 10000) humi_clamped = 10000;
+	p->humidity = (u16)(humi_clamped * 4);
 	
 	// Pressure: not available on LYWSD03MMC, use sentinel value
 	p->pressure = 0xFFFF;
