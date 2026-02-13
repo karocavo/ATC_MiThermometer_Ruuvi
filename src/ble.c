@@ -743,16 +743,16 @@ __attribute__((optimize("-Os"))) void init_ble(void) {
 }
 
 
-/* adv_type: 0 - atc1441, 1 - Custom,  2 - Mi, 3 - HA_BLE  */
+/* adv_type: 0 - atc1441, 1 - Custom,  2 - Mi, 3 - HA_BLE, 4 - Ruuvi  */
 _attribute_ram_code_
 __attribute__((optimize("-Os")))
 void set_adv_data(void) {
-#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 	u8 adv_type = cfg.flg.advertising_type;
 #endif
 #if (DEV_SERVICES & SERVICE_BINDKEY)
 	if (cfg.flg2.adv_crypto) {
-#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 #if USE_CUSTOM_BEACON
 		if (adv_type == ADV_TYPE_PVVX) {
 			pvvx_encrypt_data_beacon();
@@ -776,11 +776,11 @@ void set_adv_data(void) {
 		{}
 #else
 		bthome_encrypt_data_beacon();
-#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 	} else
 #endif // #if (DEV_SERVICES & SERVICE_BINDKEY)
 	{
-#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 #if USE_CUSTOM_BEACON
 		if (adv_type == ADV_TYPE_PVVX) {
 			pvvx_data_beacon();
@@ -801,10 +801,15 @@ void set_adv_data(void) {
 			atc_data_beacon();
 		} else
 #endif
+#if USE_RUUVI_BEACON
+		if (adv_type == ADV_TYPE_RUUVI) { // adv_type == 4
+			ruuvi_data_beacon();
+		} else
+#endif
 		{}
 #else
 		bthome_data_beacon();
-#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
+#endif // (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON + USE_RUUVI_BEACON) > 1
 	}
 	adv_buf.data_size = adv_buf.data[0] + 1;
 	load_adv_data();

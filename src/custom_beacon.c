@@ -6,7 +6,7 @@
  */
 #include "tl_common.h"
 #include "app_config.h"
-#if (USE_CUSTOM_BEACON || USE_ATC_BEACON)
+#if (USE_CUSTOM_BEACON || USE_ATC_BEACON || USE_RUUVI_BEACON)
 #include "ble.h"
 #include "app.h"
 #include "trigger.h"
@@ -151,6 +151,81 @@ void atc_data_beacon(void) {
 }
 #endif
 
+#if USE_RUUVI_BEACON
+_attribute_ram_code_
+__attribute__((optimize("-Os")))
+void ruuvi_data_beacon(void) {
+	padv_ruuvi_rawv2_t p = (padv_ruuvi_rawv2_t)&adv_buf.data;
+	p->size = sizeof(adv_ruuvi_rawv2_t) - 1;
+	p->uid = GAP_ADTYPE_MANUFACTURER_SPECIFIC; // 0xFF - Manufacturer Specific Data
+	p->company_id = ADV_RUUVI_COMPANY_ID; // 0x0499 (transmitted as 0x99 0x04 little-endian)
+	p->data_format = 0x05; // RAWv2 / Data Format 5
+	
+	// Temperature: int16 BIG-ENDIAN, signed, resolution 0.005 °C
+	// measured_data.temp is in 0.01 °C units
+	// Ruuvi format: temp_value = temperature / 0.005
+	// Conversion: (temp * 0.01) / 0.005 = temp * 2
+	// Valid range: -163.835°C to +163.835°C (Ruuvi), which is -32767 to +32767 in encoded units
+	// We clamp input to ±16383 (±163.83°C) to stay within int16 range after *2
+	s16 temp_clamped = measured_data.temp;
+	if (temp_clamped < -16383) temp_clamped = -16383;
+	if (temp_clamped > 16383) temp_clamped = 16383;
+	s16 temp_encoded = (s16)(temp_clamped * 2);
+	S16_TO_BIG_ENDIAN(temp_encoded, p->temperature);
+	
+	// Humidity: uint16 BIG-ENDIAN, resolution 0.0025%
+	// measured_data.humi is in 0.01 % units
+	// Ruuvi format: humi_value = humidity / 0.0025
+	// Conversion: (humi * 0.01) / 0.0025 = humi * 4
+	// Valid range: 0% to 100% (0 to 10000 in measured_data.humi units)
+	// Ruuvi can actually encode 0-163.835%, but we clamp to 0-100% for sensor validity
+	u16 humi_clamped = (u16)measured_data.humi;
+	if (humi_clamped > 10000) humi_clamped = 10000;
+	u16 humi_encoded = (u16)(humi_clamped * 4);
+	U16_TO_BIG_ENDIAN(humi_encoded, p->humidity);
+	
+	// Pressure: uint16 BIG-ENDIAN, not available on LYWSD03MMC, use sentinel value 0xFFFF
+	p->pressure[0] = 0xFF;
+	p->pressure[1] = 0xFF;
+	
+	// Acceleration: int16 BIG-ENDIAN, not available, set to 0
+	p->accel_x[0] = 0;
+	p->accel_x[1] = 0;
+	p->accel_y[0] = 0;
+	p->accel_y[1] = 0;
+	p->accel_z[0] = 0;
+	p->accel_z[1] = 0;
+	
+	// Power info: uint16 BIG-ENDIAN
+	// bits 11..5: battery voltage above 1600mV in 1mV steps (11 bits)
+	// bits 4..0: TX power in 2dBm steps, offset -40dBm (5 bits, range -40 to +22 dBm)
+	// Battery voltage in mV, subtract 1600 and shift to bits 11..5
+	// For TX power: 0 dBm -> (0 + 40) / 2 = 20
+#if USE_AVERAGE_BATTERY
+	u16 battery_mv = measured_data.average_battery_mv;
+#else
+	u16 battery_mv = measured_data.battery_mv;
+#endif
+	// Clamp battery voltage to valid range (1600-3646 mV for 11 bits: 0-2046)
+	if (battery_mv < 1600) battery_mv = 1600;
+	if (battery_mv > 3646) battery_mv = 3646;
+	u16 battery_shifted = ((battery_mv - 1600) << 5) & 0xFFE0;
+	u16 tx_power_bits = 20 & 0x1F; // TX power 0 dBm: (0 + 40) / 2 = 20
+	u16 power_info = battery_shifted | tx_power_bits;
+	U16_TO_BIG_ENDIAN(power_info, p->power_info);
+	
+	// Movement counter: not used
+	p->movement_counter = 0;
+	
+	// Measurement sequence number: uint16 BIG-ENDIAN, use send_count
+	u16 seq = (u16)adv_buf.send_count;
+	U16_TO_BIG_ENDIAN(seq, p->measurement_seq);
+	
+	// MAC address: copy in little-endian format (lo to hi) as per BLE spec
+	memcpy(p->MAC, mac_public, 6);
+}
+#endif
+
 #if (DEV_SERVICES & SERVICE_RDS)
 
 typedef struct __attribute__((packed)) _ext_adv_cnt_t {
@@ -207,4 +282,4 @@ void pvvx_encrypt_event_beacon(u8 n){
 
 #endif // (DEV_SERVICES & SERVICE_RDS)
 #endif // #if (DEV_SERVICES & SERVICE_BINDKEY)
-#endif // (USE_CUSTOM_BEACON || USE_ATC_BEACON)
+#endif // (USE_CUSTOM_BEACON || USE_ATC_BEACON || USE_RUUVI_BEACON)
