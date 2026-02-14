@@ -543,32 +543,4 @@ _attribute_ram_code_ void flash_lock(Flash_TypeDef type , unsigned short data)
 	irq_restore(r);
 }
 
-/**
- * @brief This function serves to protect data for flash.
- * @param[in]   type - flash type include GD,Puya and XTX
- * @return none
- */
-_attribute_ram_code_ void flash_unlock(Flash_TypeDef type)
-{
-	unsigned char r = irq_disable();
-
-	flash_send_cmd(FLASH_WRITE_ENABLE_CMD);
-	flash_send_cmd(FLASH_WRITE_STATUS_CMD);
-	if ((type == FLASH_TYPE_GD)||(type == FLASH_TYPE_XTX)){
-		mspi_write(0);   //8 bit status
-	}else if(type == FLASH_TYPE_PUYA){
-
-		mspi_write(0);
-		mspi_wait();
-		mspi_write(0);//16bit status
-
-	}
-	mspi_wait();
-	mspi_high();
-	flash_wait_done();
-	sleep_us(100);
-	mspi_high();
-	irq_restore(r);
-}
-
 #endif
