@@ -63,7 +63,7 @@ GCC_FLAGS := \
 
 # Explicitly disable extended flash API functions (flash_unlock with Flash_TypeDef parameter)
 # The SDK only supports the basic flash_unlock(void) version
-# This ensures the #if 0 block in SDK/components/drivers/8258/flash.h remains disabled
+# This ensures the FLASH_EXTENDED_API block in SDK/components/drivers/8258/flash.h remains disabled
 GCC_FLAGS += -DFLASH_EXTENDED_API=0
 
 INCLUDE_PATHS := -I$(TEL_PATH)/components -I$(PROJECT_PATH)
