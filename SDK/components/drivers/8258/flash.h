@@ -219,4 +219,11 @@ int flash_read_mid_uid_with_check( unsigned int *flash_mid ,unsigned char *flash
  */
 void flash_lock(Flash_TypeDef type , unsigned short data);
 
+/**
+ * @brief This function serves to protect data for flash.
+ * @param[in]   type - flash type include GD,Puya and XTX
+ * @return none
+ */
+void flash_unlock(Flash_TypeDef type);
+
 #endif
