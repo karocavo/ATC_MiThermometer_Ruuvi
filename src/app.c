@@ -758,7 +758,9 @@ void user_init_normal(void) {//this will get executed one time after power up
 	adc_power_on_sar_adc(0); // - 0.4 mA
 	lpc_power_down();
 	start_tst_battery();
-	// Compatibility: call flash_unlock with or without parameter based on SDK version
+	// Compatibility: Support both SDK versions
+	// - Local SDK: FLASH_EXTENDED_API=0 defined in makefile → use basic API
+	// - External SDK: FLASH_EXTENDED_API undefined → use extended API
 	#if defined(FLASH_EXTENDED_API) && (FLASH_EXTENDED_API == 0)
 		flash_unlock(); // Basic API
 	#else

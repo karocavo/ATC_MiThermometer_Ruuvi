@@ -84,7 +84,9 @@ void tuya_zigbee_ota(void) {
 	u32 faddrw = OTA2_FADDR;
 	u32 faddrs = OTA2_FADDR;
 	u32 buf_blk[64];
-	// Compatibility: call flash_unlock with or without parameter based on SDK version
+	// Compatibility: Support both SDK versions
+	// - Local SDK: FLASH_EXTENDED_API=0 defined in makefile → use basic API
+	// - External SDK: FLASH_EXTENDED_API undefined → use extended API
 	#if defined(FLASH_EXTENDED_API) && (FLASH_EXTENDED_API == 0)
 		flash_unlock(); // Basic API
 	#else
