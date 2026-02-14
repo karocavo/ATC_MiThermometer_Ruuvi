@@ -120,7 +120,7 @@ void flash_read_uid(unsigned char *buf);
 #endif
 
 /* according to your appliaction */
-#if 0
+#if FLASH_EXTENDED_API
 /**
  * @brief     This function serves to erase a page(256 bytes).
  * @param[in] addr - the start address of the page needs to erase.

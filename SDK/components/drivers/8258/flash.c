@@ -251,7 +251,7 @@ _attribute_ram_code_ void flash_read_uid(unsigned char *buf)
 #endif
 
 /* according to your appliaction */
-#if 0
+#if FLASH_EXTENDED_API
 
 /**
  * @brief This function serves to erase a page(256 bytes).
