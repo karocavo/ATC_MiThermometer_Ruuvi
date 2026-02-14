@@ -34,7 +34,7 @@ Build fails because it can't find SDK components.
 Set both `TEL_PATH` and `TC32_PATH`:
 
 ```cmd
-make TEL_PATH=C:/TelinkSDK TEL_PATH=C:/TelinkSDK/opt/tc32/bin/
+make TEL_PATH=C:/TelinkSDK TC32_PATH=C:/TelinkSDK/opt/tc32/bin/
 ```
 
 ## Build Configuration Variables
