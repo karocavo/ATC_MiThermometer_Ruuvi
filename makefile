@@ -1,3 +1,17 @@
+# ATC_MiThermometer_Ruuvi Makefile
+# 
+# Build Configuration:
+# - TEL_PATH: Path to Telink SDK (default: ./SDK)
+# - TC32_PATH: Path to TC32 toolchain binaries (auto-detected or set manually)
+# - PROJECT_NAME: Output binary name (default: ATC_Thermometer)
+#
+# For external SDK on Windows, set TC32_PATH before running make:
+#   make TC32_PATH=C:/TelinkSDK/opt/tc32/bin/
+#
+# For external SDK with different path:
+#   make TEL_PATH=/path/to/sdk TC32_PATH=/path/to/tc32/bin/
+#
+
 TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258
 
 LIBS := -llt_8258
@@ -26,13 +40,17 @@ LINUX_OS = GNU/Linux
 ifeq ($(COMPILEOS),$(LINUX_OS))
 	PYTHON ?= python3
 	TOOLS_PATH := $(TEL_PATH)/tools/linux/
-	TC32_PATH := $(TOOLS_PATH)tc32/bin/
+	TC32_PATH ?= $(TOOLS_PATH)tc32/bin/
 else
 	PYTHON ?= python
 	TOOLS_PATH := $(TEL_PATH)/tools/windows/
-ifeq ($(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe, $(wildcard $(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe))
-	TC32_PATH := $(TOOLS_PATH)tc32/bin/
-endif
+	# Check if toolchain exists in local SDK
+	ifeq ($(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe, $(wildcard $(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe))
+		TC32_PATH ?= $(TOOLS_PATH)tc32/bin/
+	else
+		# Fallback: try to find tc32-elf-gcc in PATH or use empty (assumes it's in PATH)
+		TC32_PATH ?=
+	endif
 endif
 
 OBJ_SRCS := 
