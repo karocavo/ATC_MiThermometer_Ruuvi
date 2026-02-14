@@ -138,8 +138,8 @@ $(ELF_FILE): $(OBJS) $(USER_OBJS)
 	@echo 'Building Standard target: $@'
 	@$(TC32_PATH)tc32-elf-ld --gc-sections -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Building Reduced target: $@'
-	$(eval BOOT_ADDR := $(shell $(PYTHON) $(PROJECT_PATH)/TlsrRetMemAddr.py -e $(ELF_FILE) -t $(TC32_PATH)tc32-elf-nm))
-	@$(TC32_PATH)tc32-elf-ld --gc-sections -Ttext $(BOOT_ADDR) -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
+	@BOOT_ADDR=$$($(PYTHON) $(PROJECT_PATH)/TlsrRetMemAddr.py -e $(ELF_FILE) -t $(TC32_PATH)tc32-elf-nm); \
+	$(TC32_PATH)tc32-elf-ld --gc-sections -Ttext $$BOOT_ADDR -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
