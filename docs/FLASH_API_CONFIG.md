@@ -2,89 +2,63 @@
 
 ## Overview
 
-The SDK's flash driver (`SDK/components/drivers/8258/flash.h` and `flash.c`) includes both basic and extended API functions. However, different SDK versions may have different defaults.
+The SDK's flash driver (`SDK/components/drivers/8258/flash.h` and `flash.c`) may include both basic and extended API functions. This project uses the basic API only.
 
-## Issue
+## SDK Files
 
-The SDK files include two versions of `flash_unlock`:
-- `void flash_unlock(void)` - Basic version
-- `void flash_unlock(Flash_TypeDef type)` - Extended version with flash type parameter
+The local SDK files in this repository contain:
+- **Basic API**: `void flash_unlock(void)` - Always available
+- **Extended API**: `void flash_unlock(Flash_TypeDef type)` - Conditionally compiled with `#if FLASH_EXTENDED_API`
 
-Having both declarations would cause C compilation errors since C doesn't support function overloading.
+## Application Code
 
-## SDK Version Differences
-
-### Local SDK (in repository)
-- Uses `FLASH_EXTENDED_API` flag to control which version is available
-- Set to 0 by default in makefile → basic API active
-
-### External Telink SDK
-- May be located at `C:/telink_sdk/telink-825x-sdk/` or similar
-- May have extended API as the default or only version
-- Cannot be modified per project requirements
-
-## Solution
-
-Our code uses conditional compilation to work with **both SDK versions**:
-
+The application code (`src/app.c`, `src/ext_ota.c`) simply calls:
 ```c
-#if defined(FLASH_EXTENDED_API) && (FLASH_EXTENDED_API == 0)
-    flash_unlock(); // Basic API
-#else
-    flash_unlock(FLASH_TYPE_GD); // Extended API with default flash type
-#endif
+flash_unlock();
 ```
 
-### Build Configuration
+This works because:
+1. When `FLASH_EXTENDED_API` is not defined (default), it evaluates to 0
+2. The `#if FLASH_EXTENDED_API` blocks in SDK files are excluded
+3. Only the basic `flash_unlock(void)` function is compiled
+4. The application's call to `flash_unlock()` matches perfectly
 
-In `makefile`, we set:
-```makefile
-GCC_FLAGS += -DFLASH_EXTENDED_API=0
-```
+## No Configuration Needed
 
-This flag is used in both `flash.h` and `flash.c`:
+**Important**: Do NOT define `FLASH_EXTENDED_API` in the makefile or anywhere else. Leave it undefined for the basic API to work correctly.
+
+## Safety
+
+This approach is safe because:
+- ✅ No conditional compilation in application code
+- ✅ No makefile flags to configure
+- ✅ Works exactly like the original code
+- ✅ SDK files remain untouched from user perspective
+- ✅ Cannot accidentally call wrong function version
+
+## Troubleshooting
+
+If you get a compilation error about `flash_unlock`, it means your SDK has a different version:
+
+### Error: "too few arguments to function 'flash_unlock'"
+
+Your SDK only has `flash_unlock(Flash_TypeDef type)`. 
+
+**Solution**: In `src/app.c` and `src/ext_ota.c`, change:
 ```c
-/* according to your appliaction */
-#if FLASH_EXTENDED_API
-// Extended API functions including flash_unlock(Flash_TypeDef type)
-// are only compiled if FLASH_EXTENDED_API is enabled
-#endif
+flash_unlock();
 ```
 
-### How It Works
-
-1. **With local SDK** (`FLASH_EXTENDED_API=0`):
-   - Calls `flash_unlock()` without parameters
-   - Only basic API is compiled in SDK
-
-2. **With external Telink SDK** (no `FLASH_EXTENDED_API` or different version):
-   - Calls `flash_unlock(FLASH_TYPE_GD)`
-   - Works with SDK that has extended API as default
-   - Uses `FLASH_TYPE_GD` (value 0) as safe default
-
-## Flash Types
-
+to:
 ```c
-typedef enum {
-    FLASH_TYPE_GD = 0,   // Default, safe for most cases
-    FLASH_TYPE_XTX,
-    FLASH_TYPE_PUYA
-} Flash_TypeDef;
+flash_unlock(FLASH_TYPE_GD);  // Use GD flash type (value 0)
 ```
 
-## Files Modified
+### Error: "too many arguments to function 'flash_unlock'"
 
-1. **makefile** - Added `-DFLASH_EXTENDED_API=0` to `GCC_FLAGS`
-2. **SDK/components/drivers/8258/flash.h** - Changed `#if 0` to `#if FLASH_EXTENDED_API`
-3. **SDK/components/drivers/8258/flash.c** - Changed `#if 0` to `#if FLASH_EXTENDED_API`
-4. **src/app.c** - Added conditional call to `flash_unlock`
-5. **src/ext_ota.c** - Added conditional call to `flash_unlock`
+This shouldn't happen with the current code, but if it does, your SDK only has `flash_unlock(void)` which is what we're already calling.
 
-## Benefits
+## History
 
-- ✅ Works with both local and external Telink SDK versions
-- ✅ No modification needed to external SDK files
-- ✅ Explicit and self-documenting configuration
-- ✅ Easy to maintain and update
-- ✅ No compilation errors
-- ✅ Compatible with different SDK releases
+**Previous Approach (REMOVED)**:  
+We previously used conditional compilation with `FLASH_EXTENDED_API` flags. This was removed after a user reported their device became completely non-functional (dead LCD, device bricked) after flashing. The simpler approach is much safer.
