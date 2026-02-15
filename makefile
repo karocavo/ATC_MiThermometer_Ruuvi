@@ -3,6 +3,9 @@ TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258
 LIBS := -llt_8258
 
 TEL_PATH ?= ./SDK
+ifeq ($$   (COMPILEOS),   $$(LINUX_OS))
+    TEL_PATH := /project/SDK
+endif
 
 PROJECT_NAME ?= ATC_Thermometer
 
@@ -13,9 +16,9 @@ ZBO_PATH :=./zigbee_ota
 PGM_PORT?=COM6
 PGM_PORT_BAUD?=1500000
 
-ifneq ($(TEL_PATH)/components/drivers/8258/gpio_8258.c, $(wildcard $(TEL_PATH)/components/drivers/8258/gpio_8258.c))
-$(error "Please check SDK Path and set TEL_PATH.")
-endif
+#ifneq ($(TEL_PATH)/components/drivers/8258/gpio_8258.c, $(wildcard $(TEL_PATH)/components/drivers/8258/gpio_8258.c))
+#$(error "Please check SDK Path and set TEL_PATH.")
+#endif
 
 TL_Check = $(PROJECT_PATH)/../utils/tl_check_fw.py
 zb_OTA = $(PROJECT_PATH)/../utils/zigbee_ota.py
@@ -25,13 +28,13 @@ LINUX_OS = GNU/Linux
 
 ifeq ($(COMPILEOS),$(LINUX_OS))
 	PYTHON ?= python3
-	TOOLS_PATH := $(TEL_PATH)/tools/linux/
-	TC32_PATH := $(TOOLS_PATH)tc32/bin/
+	TOOLS_PATH := /dummy/   # not used
+    TC32_PATH := /opt/tc32/bin/
 else
 	PYTHON ?= python
-	TOOLS_PATH := $(TEL_PATH)/tools/windows/
+	TOOLS_PATH := C:/TelinkSDK/opt/tc32/tools/
 ifeq ($(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe, $(wildcard $(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe))
-	TC32_PATH := $(TOOLS_PATH)tc32/bin/
+	TC32_PATH := C:/TelinkSDK/opt/tc32/bin/
 endif
 endif
 
@@ -131,6 +134,8 @@ main-build: $(ELF_FILE) secondary-outputs
 # Tool invocations
 $(ELF_FILE): $(OBJS) $(USER_OBJS)
 	@echo 'Building Standard target: $@'
+	@echo 'TEL_PATH expanded: $(TEL_PATH)'
+	@echo 'Full ld command: $(TC32_PATH)tc32-elf-ld --gc-sections -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)'
 	@$(TC32_PATH)tc32-elf-ld --gc-sections -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Building Reduced target: $@'
 	@$(TC32_PATH)tc32-elf-ld --gc-sections -Ttext `$(PYTHON) $(PROJECT_PATH)/TlsrRetMemAddr.py -e $(ELF_FILE) -t $(TC32_PATH)tc32-elf-nm` -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
