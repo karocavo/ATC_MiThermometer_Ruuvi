@@ -759,20 +759,39 @@ void user_init_normal(void) {//this will get executed one time after power up
 	lpc_power_down();
 	start_tst_battery();
 	
-	// Auto-detect flash type and unlock accordingly
-	// GD: MID=0xC8, XTX: MID=0x0B, PUYA: MID=0x85
+	// Flash unlock - compatible with both old (103-line) and new (229-line) SDK
+	// Auto-detect flash type for PUYA chips that need 16-bit status register unlock
 	u8 flash_mid[3];
 	flash_read_id(flash_mid);
-	Flash_TypeDef flash_type = FLASH_TYPE_GD; // Default to GD
 	
+#if FLASH_EXTENDED_API
+	// New SDK (229 lines) with extended API - use parameterized version
+	Flash_TypeDef flash_type = FLASH_TYPE_GD; // Default to GD
 	if (flash_mid[0] == 0x85) {
 		flash_type = FLASH_TYPE_PUYA; // PUYA requires 16-bit status register
 	} else if (flash_mid[0] == 0x0B) {
 		flash_type = FLASH_TYPE_XTX; // XTX (8-bit like GD)
 	}
-	// else: Keep FLASH_TYPE_GD for 0xC8 (GigaDevice) and unknown
-	
 	flash_unlock(flash_type);
+#else
+	// Old SDK (103 lines) without extended API - manual PUYA unlock
+	if (flash_mid[0] == 0x85) {
+		// PUYA flash: Write 16-bit status register (0x00, 0x00)
+		mspi_high();
+		mspi_wait();
+		mspi_write(FLASH_WRITE_ENABLE_CMD);
+		mspi_high();
+		mspi_wait();
+		mspi_write(FLASH_WRITE_STATUS_CMD);
+		mspi_write(0x00); // Status Register 1
+		mspi_write(0x00); // Status Register 2 (PUYA needs this!)
+		mspi_high();
+		mspi_wait();
+	} else {
+		// GD/XTX or unknown: Use basic unlock (8-bit status register)
+		flash_unlock();
+	}
+#endif
 	random_generator_init(); //must
 #if !ZIGBEE_TUYA_OTA // USE_EXT_OTA
 	big_to_low_ota(); // Correct FW OTA address? Reformat Big OTA to Low OTA

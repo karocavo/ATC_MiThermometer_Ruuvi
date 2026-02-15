@@ -85,19 +85,39 @@ void tuya_zigbee_ota(void) {
 	u32 faddrs = OTA2_FADDR;
 	u32 buf_blk[64];
 	
-	// Auto-detect flash type and unlock accordingly
+	// Flash unlock - compatible with both old (103-line) and new (229-line) SDK
+	// Auto-detect flash type for PUYA chips that need 16-bit status register unlock
 	u8 flash_mid[3];
 	flash_read_id(flash_mid);
-	Flash_TypeDef flash_type = FLASH_TYPE_GD; // Default to GD
 	
+#if FLASH_EXTENDED_API
+	// New SDK (229 lines) with extended API - use parameterized version
+	Flash_TypeDef flash_type = FLASH_TYPE_GD; // Default to GD
 	if (flash_mid[0] == 0x85) {
 		flash_type = FLASH_TYPE_PUYA; // PUYA requires 16-bit status register
 	} else if (flash_mid[0] == 0x0B) {
 		flash_type = FLASH_TYPE_XTX; // XTX (8-bit like GD)
 	}
-	// else: Keep FLASH_TYPE_GD for 0xC8 and unknown
-	
 	flash_unlock(flash_type);
+#else
+	// Old SDK (103 lines) without extended API - manual PUYA unlock
+	if (flash_mid[0] == 0x85) {
+		// PUYA flash: Write 16-bit status register (0x00, 0x00)
+		mspi_high();
+		mspi_wait();
+		mspi_write(FLASH_WRITE_ENABLE_CMD);
+		mspi_high();
+		mspi_wait();
+		mspi_write(FLASH_WRITE_STATUS_CMD);
+		mspi_write(0x00); // Status Register 1
+		mspi_write(0x00); // Status Register 2 (PUYA needs this!)
+		mspi_high();
+		mspi_wait();
+	} else {
+		// GD/XTX or unknown: Use basic unlock (8-bit status register)
+		flash_unlock();
+	}
+#endif
 	flash_read_page(faddrr, 16, (unsigned char *) &buf_blk);
 	if(buf_blk[2] == id) {
 		faddrr = ZIGBEE_BOOT_OTA_FADDR;

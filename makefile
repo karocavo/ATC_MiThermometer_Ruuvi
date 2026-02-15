@@ -12,7 +12,11 @@
 #   make TEL_PATH=/path/to/sdk TC32_PATH=/path/to/tc32/bin/
 #
 
-TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258 -DFLASH_EXTENDED_API=1
+TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258
+# Flash Extended API: Set to 1 if your SDK has 229-line flash.h with extended API
+# Set to 0 (or comment out) if your SDK has 103-line flash.h without extended API
+# Auto-detection will work either way!
+TEL_CHIP += -DFLASH_EXTENDED_API=1
 
 LIBS := -llt_8258
 
