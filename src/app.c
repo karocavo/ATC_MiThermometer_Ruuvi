@@ -758,9 +758,21 @@ void user_init_normal(void) {//this will get executed one time after power up
 	adc_power_on_sar_adc(0); // - 0.4 mA
 	lpc_power_down();
 	start_tst_battery();
-	// Use FLASH_TYPE_GD (default, works for GD and XTX chips)
-	// If device has PUYA flash, this may need to be changed to FLASH_TYPE_PUYA
-	flash_unlock(FLASH_TYPE_GD);
+	
+	// Auto-detect flash type and unlock accordingly
+	// GD: MID=0xC8, XTX: MID=0x0B, PUYA: MID=0x85
+	u8 flash_mid[3];
+	flash_read_id(flash_mid);
+	Flash_TypeDef flash_type = FLASH_TYPE_GD; // Default to GD
+	
+	if (flash_mid[0] == 0x85) {
+		flash_type = FLASH_TYPE_PUYA; // PUYA requires 16-bit status register
+	} else if (flash_mid[0] == 0x0B) {
+		flash_type = FLASH_TYPE_XTX; // XTX (8-bit like GD)
+	}
+	// else: Keep FLASH_TYPE_GD for 0xC8 (GigaDevice) and unknown
+	
+	flash_unlock(flash_type);
 	random_generator_init(); //must
 #if !ZIGBEE_TUYA_OTA // USE_EXT_OTA
 	big_to_low_ota(); // Correct FW OTA address? Reformat Big OTA to Low OTA

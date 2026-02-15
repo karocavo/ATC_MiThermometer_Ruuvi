@@ -84,8 +84,20 @@ void tuya_zigbee_ota(void) {
 	u32 faddrw = OTA2_FADDR;
 	u32 faddrs = OTA2_FADDR;
 	u32 buf_blk[64];
-	// Use FLASH_TYPE_GD (default, works for GD and XTX chips)
-	flash_unlock(FLASH_TYPE_GD);
+	
+	// Auto-detect flash type and unlock accordingly
+	u8 flash_mid[3];
+	flash_read_id(flash_mid);
+	Flash_TypeDef flash_type = FLASH_TYPE_GD; // Default to GD
+	
+	if (flash_mid[0] == 0x85) {
+		flash_type = FLASH_TYPE_PUYA; // PUYA requires 16-bit status register
+	} else if (flash_mid[0] == 0x0B) {
+		flash_type = FLASH_TYPE_XTX; // XTX (8-bit like GD)
+	}
+	// else: Keep FLASH_TYPE_GD for 0xC8 and unknown
+	
+	flash_unlock(flash_type);
 	flash_read_page(faddrr, 16, (unsigned char *) &buf_blk);
 	if(buf_blk[2] == id) {
 		faddrr = ZIGBEE_BOOT_OTA_FADDR;
