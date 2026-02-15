@@ -263,3 +263,39 @@ The user correctly identified the issue:
 **Result:** Flash writes should now persist correctly!
 
 If you still have issues, try FLASH_TYPE_PUYA!
+
+---
+
+## Update: Automatic Flash Type Detection (Latest)
+
+### Previous Version
+Required manual configuration:
+- Default: `flash_unlock(FLASH_TYPE_GD)` 
+- PUYA users: Change to `flash_unlock(FLASH_TYPE_PUYA)`
+
+### Current Version
+**Automatic detection** - no configuration needed!
+
+```c
+// Auto-detects flash type at runtime
+u8 flash_mid[3];
+flash_read_id(flash_mid);
+
+if (flash_mid[0] == 0x85) {
+    flash_type = FLASH_TYPE_PUYA;  // Auto-detect PUYA
+} else if (flash_mid[0] == 0x0B) {
+    flash_type = FLASH_TYPE_XTX;   // Auto-detect XTX
+} else {
+    flash_type = FLASH_TYPE_GD;    // Default to GD
+}
+
+flash_unlock(flash_type);
+```
+
+### Result
+✅ Works with GD flash (MID 0xC8)
+✅ Works with XTX flash (MID 0x0B)
+✅ Works with PUYA flash (MID 0x85)
+✅ **No user action required!**
+
+See `FLASH_AUTO_DETECT.md` for complete details.
