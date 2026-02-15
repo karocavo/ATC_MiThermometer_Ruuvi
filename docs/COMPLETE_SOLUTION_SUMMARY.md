@@ -48,6 +48,17 @@ This document summarizes ALL changes made to fix flash write persistence, versio
 $ grep "#if 0" SDK/components/drivers/8258/flash.{h,c}
 (empty - no #if 0 blocks)
 
+### 6. SDK Source Confusion ✅ CLARIFIED
+**Problem:** User asked "where can i download correct sdk files, the one in our branch had if 0"
+
+**Reality:** Our repository SDK is CORRECT - no #if 0 blocks, uses #if FLASH_EXTENDED_API.
+
+**Solution:**
+- User should use SDK from our repository (already included)
+- No external download needed
+- If user has different SDK with #if 0, replace with ours
+- Complete guide provided in SDK_SOURCE_GUIDE.md
+
 $ grep "FLASH_EXTENDED_API" SDK/components/drivers/8258/flash.{h,c}
 flash.h:123:#if FLASH_EXTENDED_API
 flash.c:254:#if FLASH_EXTENDED_API
@@ -132,14 +143,16 @@ flash_read_id(flash_mid);
 5. **SDK_FLASH_H_EXPLAINED.md** - SDK structure explanation
 6. **SDK_FLASH_H_LINE_VERIFICATION.md** - Line 123 verification
 7. **SDK_DEBUG_GUIDE.md** - Debug and verification commands
+8. **SDK_SOURCE_GUIDE.md** - Where to get SDK, which version to use
 
 ### User Guides
 
-8. **VERSION_IDENTIFICATION.md** - OTA version tracking
-9. **OTA_UPDATE_GUIDE.md** - Complete OTA procedure
-10. **DEVICE_BRICK_FIX.md** - Recovery from failed flash
-11. **RUUVI_SAFETY_ANALYSIS.md** - Ruuvi implementation safety
-12. **BUILDING_ON_WINDOWS.md** - Windows build setup
+9. **VERSION_IDENTIFICATION.md** - OTA version tracking
+10. **OTA_UPDATE_GUIDE.md** - Complete OTA procedure
+11. **DEVICE_BRICK_FIX.md** - Recovery from failed flash
+12. **RUUVI_SAFETY_ANALYSIS.md** - Ruuvi implementation safety
+13. **BUILDING_ON_WINDOWS.md** - Windows build setup
+14. **COMPLETE_SOLUTION_SUMMARY.md** - This document (master reference)
 
 ## Universal Compatibility
 
@@ -320,6 +333,8 @@ wc -l SDK/components/drivers/8258/flash.h
 | "api switch not in sdk" | ❌ False | Lines 123, 254 |
 | "should be according to TEL_CHIP" | ✅ Correct | Makefile has flag |
 | "why not working in our branch" | 🔧 Build issue | Need clean build + verify flag |
+| "where to download correct sdk" | 💡 Use ours! | SDK in repo is correct |
+| "the one in our branch had if 0" | 🔀 Different SDK | User has different version |
 
 ### SDK Structure Confirmed
 
