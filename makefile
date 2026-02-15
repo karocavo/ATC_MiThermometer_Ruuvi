@@ -12,7 +12,7 @@
 #   make TEL_PATH=/path/to/sdk TC32_PATH=/path/to/tc32/bin/
 #
 
-TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258
+TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258 -DFLASH_EXTENDED_API=1
 
 LIBS := -llt_8258
 
@@ -78,10 +78,6 @@ GCC_FLAGS := \
 -funsigned-char \
 -fshort-wchar \
 -fms-extensions
-
-# Enable extended flash API to support all flash types (GD, PUYA, XTX)
-# This is needed for proper flash_unlock() on PUYA chips (16-bit status register)
-GCC_FLAGS += -DFLASH_EXTENDED_API=1
 
 INCLUDE_PATHS := -I$(TEL_PATH)/components -I$(PROJECT_PATH)
 
