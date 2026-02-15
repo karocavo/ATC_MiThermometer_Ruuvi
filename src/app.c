@@ -758,7 +758,9 @@ void user_init_normal(void) {//this will get executed one time after power up
 	adc_power_on_sar_adc(0); // - 0.4 mA
 	lpc_power_down();
 	start_tst_battery();
-	flash_unlock();
+	// Use FLASH_TYPE_GD (default, works for GD and XTX chips)
+	// If device has PUYA flash, this may need to be changed to FLASH_TYPE_PUYA
+	flash_unlock(FLASH_TYPE_GD);
 	random_generator_init(); //must
 #if !ZIGBEE_TUYA_OTA // USE_EXT_OTA
 	big_to_low_ota(); // Correct FW OTA address? Reformat Big OTA to Low OTA

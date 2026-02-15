@@ -79,6 +79,10 @@ GCC_FLAGS := \
 -fshort-wchar \
 -fms-extensions
 
+# Enable extended flash API to support all flash types (GD, PUYA, XTX)
+# This is needed for proper flash_unlock() on PUYA chips (16-bit status register)
+GCC_FLAGS += -DFLASH_EXTENDED_API=1
+
 INCLUDE_PATHS := -I$(TEL_PATH)/components -I$(PROJECT_PATH)
 
 GCC_FLAGS += $(TEL_CHIP)

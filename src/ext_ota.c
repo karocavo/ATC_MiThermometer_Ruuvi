@@ -84,7 +84,8 @@ void tuya_zigbee_ota(void) {
 	u32 faddrw = OTA2_FADDR;
 	u32 faddrs = OTA2_FADDR;
 	u32 buf_blk[64];
-	flash_unlock();
+	// Use FLASH_TYPE_GD (default, works for GD and XTX chips)
+	flash_unlock(FLASH_TYPE_GD);
 	flash_read_page(faddrr, 16, (unsigned char *) &buf_blk);
 	if(buf_blk[2] == id) {
 		faddrr = ZIGBEE_BOOT_OTA_FADDR;
