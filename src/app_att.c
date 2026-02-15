@@ -161,7 +161,7 @@ static const u8 my_HardStr[4] = {"V1.0"};// = {"V1.0"};
 static const u8 my_SerialStr[] = {"0000-0000-0000-0001"}; // "0000-0000-0000-00000"
 #endif
 static const u8 my_SoftStr[] = {'V','0'+(VERSION>>4),'.','0'+(VERSION&0x0f)}; // "0109"
-static const u8 my_ManStr[] = {"DIY.home"};
+static const u8 my_ManStr[] = {"DIY.Ruuvi-v58"};
 
 #elif DEVICE_TYPE == DEVICE_TH03Z
 static const u8 my_ModelStr[] = {"TH03Z"};
@@ -170,7 +170,7 @@ static const u8 my_HardStr[4] = {"V1.0"};// = {"V1.0"};
 static const u8 my_SerialStr[] = {"0000-0000-0000-0002"}; // "0000-0000-0000-00000"
 #endif
 static const u8 my_SoftStr[] = {'V','0'+(VERSION>>4),'.','0'+(VERSION&0x0f)}; // "0109"
-static const u8 my_ManStr[] = {"DIY.home"};
+static const u8 my_ManStr[] = {"DIY.Ruuvi-v58"};
 
 #elif DEVICE_TYPE == DEVICE_ZTH01
 static const u8 my_ModelStr[] = {"ZTH01"};
@@ -179,7 +179,7 @@ static const u8 my_HardStr[4] = {"V1.0"};// = {"V1.0"};
 static const u8 my_SerialStr[] = {"0000-0000-0000-0003"}; // "0000-0000-0000-00000"
 #endif
 static const u8 my_SoftStr[] = {'V','0'+(VERSION>>4),'.','0'+(VERSION&0x0f)}; // "0109"
-static const u8 my_ManStr[] = {"DIY.home"};
+static const u8 my_ManStr[] = {"DIY.Ruuvi-v58"};
 
 #elif DEVICE_TYPE == DEVICE_ZTH02
 static const u8 my_ModelStr[] = {"ZTH02"};
@@ -188,7 +188,7 @@ static const u8 my_HardStr[4] = {"V1.0"};// = {"V1.0"};
 static const u8 my_SerialStr[] = {"0000-0000-0000-0004"}; // "0000-0000-0000-00000"
 #endif
 static const u8 my_SoftStr[] = {'V','0'+(VERSION>>4),'.','0'+(VERSION&0x0f)}; // "0109"
-static const u8 my_ManStr[] = {"DIY.home"};
+static const u8 my_ManStr[] = {"DIY.Ruuvi-v58"};
 
 #elif DEVICE_TYPE == DEVICE_TNK01
 static const u8 my_ModelStr[] = {"TNK01"};
@@ -197,7 +197,7 @@ static const u8 my_HardStr[4] = {"V1.0"};// = {"V1.0"};
 static const u8 my_SerialStr[] = {"0000-0000-0000-0005"}; // "0000-0000-0000-00000"
 #endif
 static const u8 my_SoftStr[] = {'V','0'+(VERSION>>4),'.','0'+(VERSION&0x0f)}; // "0109"
-static const u8 my_ManStr[] = {"DIY.home"};
+static const u8 my_ManStr[] = {"DIY.Ruuvi-v58"};
 
 #elif DEVICE_TYPE == DEVICE_TB03F
 static const u8 my_ModelStr[] = {"TB-03F"};
@@ -206,7 +206,7 @@ static const u8 my_HardStr[4] = {"V1.0"};// = {"V1.0"};
 static const u8 my_SerialStr[] = {"0000-0000-0000-0006"}; // "0000-0000-0000-00000"
 #endif
 static const u8 my_SoftStr[] = {'V','0'+(VERSION>>4),'.','0'+(VERSION&0x0f)}; // "0109"
-static const u8 my_ManStr[] = {"DIY.home"};
+static const u8 my_ManStr[] = {"DIY.Ruuvi-v58"};
 
 #elif DEVICE_TYPE == DEVICE_PLM1
 static const u8 my_ModelStr[] = {"PLM-1"};
