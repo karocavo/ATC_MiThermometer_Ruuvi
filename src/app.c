@@ -758,14 +758,7 @@ void user_init_normal(void) {//this will get executed one time after power up
 	adc_power_on_sar_adc(0); // - 0.4 mA
 	lpc_power_down();
 	start_tst_battery();
-	// Compatibility: Support both SDK versions
-	// - Local SDK: FLASH_EXTENDED_API=0 defined in makefile → use basic API
-	// - External SDK: FLASH_EXTENDED_API undefined → use extended API
-	#if defined(FLASH_EXTENDED_API) && (FLASH_EXTENDED_API == 0)
-		flash_unlock(); // Basic API
-	#else
-		flash_unlock(FLASH_TYPE_GD); // Extended API with default flash type
-	#endif
+	flash_unlock();
 	random_generator_init(); //must
 #if !ZIGBEE_TUYA_OTA // USE_EXT_OTA
 	big_to_low_ota(); // Correct FW OTA address? Reformat Big OTA to Low OTA

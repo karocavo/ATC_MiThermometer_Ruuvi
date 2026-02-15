@@ -84,14 +84,7 @@ void tuya_zigbee_ota(void) {
 	u32 faddrw = OTA2_FADDR;
 	u32 faddrs = OTA2_FADDR;
 	u32 buf_blk[64];
-	// Compatibility: Support both SDK versions
-	// - Local SDK: FLASH_EXTENDED_API=0 defined in makefile → use basic API
-	// - External SDK: FLASH_EXTENDED_API undefined → use extended API
-	#if defined(FLASH_EXTENDED_API) && (FLASH_EXTENDED_API == 0)
-		flash_unlock(); // Basic API
-	#else
-		flash_unlock(FLASH_TYPE_GD); // Extended API with default flash type
-	#endif
+	flash_unlock();
 	flash_read_page(faddrr, 16, (unsigned char *) &buf_blk);
 	if(buf_blk[2] == id) {
 		faddrr = ZIGBEE_BOOT_OTA_FADDR;
