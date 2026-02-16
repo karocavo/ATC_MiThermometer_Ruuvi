@@ -21,6 +21,9 @@ TEL_CHIP += -DFLASH_EXTENDED_API=1
 LIBS := -llt_8258
 
 TEL_PATH ?= ./SDK
+ifeq ($$   (COMPILEOS),   $$(LINUX_OS))
+    TEL_PATH := /project/SDK
+endif
 
 PROJECT_NAME ?= ATC_Thermometer
 
@@ -31,9 +34,9 @@ ZBO_PATH :=./zigbee_ota
 PGM_PORT?=COM6
 PGM_PORT_BAUD?=1500000
 
-ifneq ($(TEL_PATH)/components/drivers/8258/gpio_8258.c, $(wildcard $(TEL_PATH)/components/drivers/8258/gpio_8258.c))
-$(error "Please check SDK Path and set TEL_PATH.")
-endif
+#ifneq ($(TEL_PATH)/components/drivers/8258/gpio_8258.c, $(wildcard $(TEL_PATH)/components/drivers/8258/gpio_8258.c))
+#$(error "Please check SDK Path and set TEL_PATH.")
+#endif
 
 TL_Check = $(PROJECT_PATH)/../utils/tl_check_fw.py
 zb_OTA = $(PROJECT_PATH)/../utils/zigbee_ota.py
@@ -153,6 +156,8 @@ main-build: $(ELF_FILE) secondary-outputs
 # Tool invocations
 $(ELF_FILE): $(OBJS) $(USER_OBJS)
 	@echo 'Building Standard target: $@'
+	@echo 'TEL_PATH expanded: $(TEL_PATH)'
+	@echo 'Full ld command: $(TC32_PATH)tc32-elf-ld --gc-sections -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)'
 	@$(TC32_PATH)tc32-elf-ld --gc-sections -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Building Reduced target: $@'
 	@BOOT_ADDR=$$($(PYTHON) $(PROJECT_PATH)/TlsrRetMemAddr.py -e $(ELF_FILE) -t $(TC32_PATH)tc32-elf-nm); \
