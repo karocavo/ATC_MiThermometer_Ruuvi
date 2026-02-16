@@ -1,4 +1,22 @@
+# ATC_MiThermometer_Ruuvi Makefile
+# 
+# Build Configuration:
+# - TEL_PATH: Path to Telink SDK (default: ./SDK)
+# - TC32_PATH: Path to TC32 toolchain binaries (auto-detected or set manually)
+# - PROJECT_NAME: Output binary name (default: ATC_Thermometer)
+#
+# For external SDK on Windows, set TC32_PATH before running make:
+#   make TC32_PATH=C:/TelinkSDK/opt/tc32/bin/
+#
+# For external SDK with different path:
+#   make TEL_PATH=/path/to/sdk TC32_PATH=/path/to/tc32/bin/
+#
+
 TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258
+# Flash Extended API: Set to 1 if your SDK has 229-line flash.h with extended API
+# Set to 0 (or comment out) if your SDK has 103-line flash.h without extended API
+# Auto-detection will work either way!
+TEL_CHIP += -DFLASH_EXTENDED_API=1
 
 LIBS := -llt_8258
 
@@ -28,14 +46,18 @@ LINUX_OS = GNU/Linux
 
 ifeq ($(COMPILEOS),$(LINUX_OS))
 	PYTHON ?= python3
-	TOOLS_PATH := /dummy/   # not used
-    TC32_PATH := /opt/tc32/bin/
+	TOOLS_PATH := $(TEL_PATH)/tools/linux/
+	TC32_PATH ?= $(TOOLS_PATH)tc32/bin/
 else
 	PYTHON ?= python
-	TOOLS_PATH := C:/TelinkSDK/opt/tc32/tools/
-ifeq ($(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe, $(wildcard $(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe))
-	TC32_PATH := C:/TelinkSDK/opt/tc32/bin/
-endif
+	TOOLS_PATH := $(TEL_PATH)/tools/windows/
+	# Check if toolchain exists in local SDK
+	ifeq ($(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe, $(wildcard $(TOOLS_PATH)tc32/bin/tc32-elf-gcc.exe))
+		TC32_PATH ?= $(TOOLS_PATH)tc32/bin/
+	else
+		# Fallback: try to find tc32-elf-gcc in PATH or use empty (assumes it's in PATH)
+		TC32_PATH ?=
+	endif
 endif
 
 OBJ_SRCS := 
@@ -138,7 +160,8 @@ $(ELF_FILE): $(OBJS) $(USER_OBJS)
 	@echo 'Full ld command: $(TC32_PATH)tc32-elf-ld --gc-sections -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)'
 	@$(TC32_PATH)tc32-elf-ld --gc-sections -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Building Reduced target: $@'
-	@$(TC32_PATH)tc32-elf-ld --gc-sections -Ttext `$(PYTHON) $(PROJECT_PATH)/TlsrRetMemAddr.py -e $(ELF_FILE) -t $(TC32_PATH)tc32-elf-nm` -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
+	@BOOT_ADDR=$$($(PYTHON) $(PROJECT_PATH)/TlsrRetMemAddr.py -e $(ELF_FILE) -t $(TC32_PATH)tc32-elf-nm); \
+	$(TC32_PATH)tc32-elf-ld --gc-sections -Ttext $$BOOT_ADDR -L $(TEL_PATH)/components/proj_lib -L $(OUT_PATH) -T $(LS_FLAGS) -o $(ELF_FILE) $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
