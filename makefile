@@ -18,6 +18,9 @@ TEL_CHIP := -DCHIP_TYPE=CHIP_TYPE_8258
 # Auto-detection will work either way!
 TEL_CHIP += -DFLASH_EXTENDED_API=1
 
+# Project-specific defines
+PROJECT_DEF := -DDEVICE_TYPE=DEVICE_LYWSD03MMC
+
 LIBS := -llt_8258
 
 TEL_PATH ?= ./SDK
@@ -89,7 +92,7 @@ GCC_FLAGS := \
 INCLUDE_PATHS := -I$(TEL_PATH)/components -I$(PROJECT_PATH)
 
 GCC_FLAGS += $(TEL_CHIP)
-GCC_FLAGS += $(POJECT_DEF)
+GCC_FLAGS += $(PROJECT_DEF)
 
 LS_FLAGS := $(PROJECT_PATH)/boot.link
 
