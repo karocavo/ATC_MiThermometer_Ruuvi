@@ -56,13 +56,13 @@ To use Ruuvi advertising format, you need to:
 The device auto-detects hardware version at runtime based on I2C addresses:
 
 | HW Version | LCD I2C Address | Sensor I2C Address | Sensor Type |
-|------------|----------------|-------------------|-------------|
-| B1.4 | 0x3C | 0x70 | SHTC3 |
-| B1.5 | UART | 0x70 | SHTC3 |
-| B1.6 | UART/SPI | 0x44 | SHT4x |
-| B1.7 | 0x3C | 0x44 | SHT4x |
-| B1.9 | 0x3E | 0x44 | SHT4x |
-| B2.0 | 0x3C | 0x44 | SHT4x |
+|------------|-----------------|--------------------|-----------  |
+| B1.4       | 0x3C            | 0x70               | SHTC3       |
+| B1.5       | UART            | 0x70               | SHTC3       |
+| B1.6       | UART/SPI        | 0x44               | SHT4x       |
+| B1.7       | 0x3C            | 0x44               | SHT4x       |
+| B1.9       | 0x3E            | 0x44               | SHT4x       |
+| B2.0       | 0x3C            | 0x44               | SHT4x       |
 
 Detection happens in `src/app.c` function `set_hw_version()` (line 341).
 
