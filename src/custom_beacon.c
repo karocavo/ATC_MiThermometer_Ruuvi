@@ -151,6 +151,76 @@ void atc_data_beacon(void) {
 }
 #endif
 
+/* Ruuvi RAWv2 beacon - manufacturer specific data format */
+_attribute_ram_code_
+__attribute__((optimize("-Os")))
+void ruuvi_data_beacon(void) {
+	padv_ruuvi_t p = (padv_ruuvi_t)&adv_buf.data;
+	s16 temp_raw;
+	u16 humi_raw;
+	u16 pressure_raw;
+	u16 power_info;
+	u16 meas_seq;
+	s8 tx_dbm;
+	u16 batt_mv;
+	
+	p->size = sizeof(adv_ruuvi_t) - 1;
+	p->uid = 0xFF; // GAP_ADTYPE_MANUFACTURER_SPECIFIC_DATA
+	p->mfr_id = 0x0499; // Ruuvi Innovations (little-endian in BLE)
+	p->data_type = 0x05; // RAWv2 format
+
+	/* Temperature: measured_data.temp is in 0.01 C, RAWv2 uses 0.005 C */
+	temp_raw = (s16)(measured_data.temp * 2);
+	p->temp[0] = (u8)((temp_raw >> 8) & 0xFF);
+	p->temp[1] = (u8)(temp_raw & 0xFF);
+
+	/* Humidity: measured_data.humi is in 0.01%, RAWv2 uses 0.0025% */
+	humi_raw = (u16)(measured_data.humi * 4);
+	p->humi[0] = (u8)(humi_raw >> 8);
+	p->humi[1] = (u8)(humi_raw & 0xFF);
+
+	/* Pressure: no sensor, fake standard atmospheric pressure */
+	pressure_raw = 51325; // 101325 Pa - 50000 Pa offset
+	p->pressure[0] = (u8)(pressure_raw >> 8);
+	p->pressure[1] = (u8)(pressure_raw & 0xFF);
+
+	/* Acceleration: not available, fake 0 mg */
+	p->accel_x[0] = 0;
+	p->accel_x[1] = 0;
+	p->accel_y[0] = 0;
+	p->accel_y[1] = 0;
+	p->accel_z[0] = 0;
+	p->accel_z[1] = 0;
+
+	/* Power info: battery (mV, 11 bits) + TX power (5 bits, -40..+20 dBm) */
+#if USE_AVERAGE_BATTERY
+	batt_mv = measured_data.average_battery_mv;
+#else
+	batt_mv = measured_data.battery_mv;
+#endif
+	if (batt_mv > 2047) {
+		batt_mv = 2047;
+	}
+	tx_dbm = (s8)(cfg.rf_tx_power - 60); // rough conversion from 0-191 range to dBm
+	if (tx_dbm < -40) {
+		tx_dbm = -40;
+	} else if (tx_dbm > 20) {
+		tx_dbm = 20;
+	}
+	power_info = (u16)((batt_mv & 0x07FF) << 5) | ((u8)tx_dbm & 0x1F);
+	p->power_info[0] = (u8)(power_info >> 8);
+	p->power_info[1] = (u8)(power_info & 0xFF);
+
+	/* Movement counter and measurement sequence */
+	p->move_count = (u8)adv_buf.send_count;
+	meas_seq = (u16)adv_buf.send_count;
+	p->meas_seq[0] = (u8)(meas_seq >> 8);
+	p->meas_seq[1] = (u8)(meas_seq & 0xFF);
+
+	/* MAC address */
+	memcpy(p->MAC, mac_public, 6);
+}
+
 #if (DEV_SERVICES & SERVICE_RDS)
 
 typedef struct __attribute__((packed)) _ext_adv_cnt_t {

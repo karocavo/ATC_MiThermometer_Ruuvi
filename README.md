@@ -34,6 +34,8 @@ Access to github is already slowing down. Most Internet information resources ha
 * **Measurement values recording** & Charting. See [Reading Measurements from Flash](#reading-measurements-from-flash)
 * **Adjustable correction offsets** and **Comfort zones**
 * Support for 4 beacon formats: Xiaomi, ATC, Custom, BTHome v2 and encrypted options. Legacy and  Extended Advertisements.
+
+Note: LE Long Range and extended advertising use extra retention RAM. On LYWSD03MMC builds, you may need to disable unused beacon formats (e.g., MiHome and ATC) and keep only BTHome + Custom (Ruuvi) before enabling LE Long Range.
 * Adjustable RF TX Power (-20..+10dB) & Bluetooth advertising interval. +3..+10 dB require a more powerful power supply.
 * DIY improvements - relay control by temperature or humidity, transmission of the reed switch status - open / closed or pulse counter. And more [DIY projects](https://github.com/pvvx/ATC_MiThermometer/issues/638)
 * Firmware download support for [Zigbee](https://github.com/pvvx/ZigbeeTLc)
@@ -616,8 +618,87 @@ Ubuntu:
 ```
   git clone https://github.com/pvvx/ATC_MiThermometer.git
   cd ATC_MiThermometer
+  make clean
   make
 ```
+
+Resulting firmware: `./out/ATC_Thermometer.bin`
+
+#### Customization for Ruuvi RAWv2 with EU Timezone
+
+**Build Configuration (src/app.c - DEVICE_LYWSD03MMC section):**
+
+- **Beacon Format:** `ADV_TYPE_PVVX` - Ruuvi RAWv2 format
+- **Device Name:** Auto-generated as `RuuVi_XXXXXX` (device MAC address)
+- **Boot Screen:** Displays "Ruuvi" logo on power-up
+- **Advertising Interval:** 20 seconds (low power)
+- **Measurement Interval:** 5 minutes (300 seconds)
+- **Display Update:** 10 seconds
+  - Cycles between: 30 seconds temperature+humidity → 10 seconds local time
+- **Timezone:** UTC+1 (Central European Time - Bratislava)
+- **DST:** Enabled (EU rules - auto-adjusts with EU DST dates)
+- **Logging:** 74 days of 5-minute measurements to flash
+
+**Customizing Timezone & DST:**
+
+Edit `src/app.c` in the `DEVICE_LYWSD03MMC` section (around line 95):
+
+```c
+.tz_offset = 1,      // Timezone offset in hours (Bratislava = UTC+1)
+                     // Change to: 0=UTC, 2=CEST (summer), -5=EST, etc.
+.flg_dst = 0x01,     // bit 0: DST enabled (1) or fixed time (0)
+                     // Bit 1: DST active state (set automatically based on date)
+```
+
+EU Timezone Examples:
+- **UTC+0 (UK/Ireland):** `tz_offset = 0, flg_dst = 0` (no DST)
+- **UTC+1 (Ireland/Portugal):** `tz_offset = 1, flg_dst = 0x01` (with DST)
+- **UTC+2 (Greece/Lithuania):** `tz_offset = 2, flg_dst = 0x01` (with DST)
+- **UTC-1 (Azores):** `tz_offset = -1, flg_dst = 0x01` (with DST)
+
+**Customizing Device Name (src/ble.c):**
+
+By default, device advertises as `RuuVi_XXXXXX` where `XXXXXX` are the last 3 bytes of the device's MAC address (hex).
+
+To change the prefix, edit `src/ble.c` in the `ble_set_name()` function around line 560:
+
+```c
+#elif DEVICE_TYPE == DEVICE_LYWSD03MMC
+    ble_name[2] = 'R';  // Change these characters for custom prefix
+    ble_name[3] = 'u';
+    ble_name[4] = 'u';
+    ble_name[5] = 'V';
+    ble_name[6] = 'i';
+    ble_name[7] = '_';
+    // ... rest of MAC hex appending
+```
+
+**Display Modes:**
+
+The LYWSD03MMC display automatically cycles on a 20-second loop:
+
+1. **Temperature & Humidity** (10 seconds) - shows current T/H with optional comfort indicator
+2. **Local Time** (5 seconds) - displays local time in standard ATC format: big numbers for hours (HH), small numbers for minutes (MM), adjusted for timezone + DST
+3. **Date & Year with DST** (5 seconds) - shows date in **MMDD format with YY year and DST status:**
+   - **Big numbers:** MMDD (e.g., `1126` = November 26, `0512` = May 12)
+   - **Small numbers:** YY (e.g., `26` for 2026)
+   - **DST Indicator (overlaid on year):**
+     - **"I"** (C segment) = DST currently **active** (summer time)
+     - **"-"** (F segment) = DST **not active** (standard time)
+     - **No indicator** = DST disabled
+
+**Time Synchronization:**
+
+The device derives time from BLE advertisements (GATT Service timestamp) or can be set via characteristic 0x1F1F (ID 0x01) when connected.
+
+**Storage Capacity:**
+
+- **Flash Storage:** 52 sectors (0x40000-0x74000)
+- **Record Size:** 10 bytes per measurement
+- **Total Capacity:** ~21,268 measurements
+- **At 5-min intervals:** ~74 days (2.5 months)
+
+Records are stored in UTC (unaffected by timezone) and can be read via web interface or programmatically.
 
 ## Related Work
 

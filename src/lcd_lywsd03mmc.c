@@ -530,6 +530,80 @@ void show_clock(void) {
 	display_buff[4] = display_numbers[hrs / 10 % 10];
 	display_buff[5] = 0;
 }
+
+/* Display cycling: 10sec temp, 5sec time, 5sec date */
+RAM u8 display_cycle_stage = 0; // 0 = temp/humi (10sec), 1 = time (5sec), 2 = date (5sec)
+
+_attribute_ram_code_
+void show_local_time(void) {
+	s32 local_sec = wrk.utc_time_sec + (cfg.tz_offset * 3600); // Add timezone offset
+	if (cfg.flg_dst & 0x01) local_sec += 3600; // Add DST offset if active
+	
+	u32 tmp = local_sec / 60;
+	u32 min = tmp % 60;
+	u32 hrs = (tmp / 60) % 24;
+
+	// Time format: HH (big digits) and MM (small digits)
+	display_buff[5] = display_numbers[hrs / 10 % 10];
+	display_buff[4] = display_numbers[hrs % 10];
+	display_buff[3] = 0;
+	display_buff[2] = 0;
+	display_buff[1] = display_numbers[min / 10 % 10];
+	display_buff[0] = display_numbers[min % 10];
+}
+
+_attribute_ram_code_
+void show_date_with_dst(void) {
+	// Calculate date from UTC time with timezone offset
+	s32 local_sec = wrk.utc_time_sec + (cfg.tz_offset * 3600);
+	if (cfg.flg_dst & 0x01) local_sec += 3600; // Add DST offset if enabled
+	
+	// Days since epoch (1970-01-01)
+	u32 days = local_sec / 86400;
+	
+	// Simplified date calculation (approximate, assumes 365 days/year)
+	u32 year = 1970 + days / 365;
+	u32 day_of_year = days % 365 + 1;
+	
+	// Month/day lookup (simplified for non-leap year)
+	static const u8 days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+	u8 month = 1;
+	u8 day = day_of_year;
+	for (int i = 0; i < 12; i++) {
+		if (day <= days_in_month[i]) {
+			month = i + 1;
+			break;
+		}
+		day -= days_in_month[i];
+	}
+	
+	// Display format: DD in big digits, MM in small digits (fits LYWSD03MMC LCD)
+	// Example: Nov 26 -> big: 26, small: 11
+	display_buff[5] = display_numbers[day / 10 % 10];  // DD tens (big)
+	display_buff[4] = display_numbers[day % 10];       // DD units (big)
+	display_buff[3] = 0;                               // blank
+	display_buff[2] = 0;                               // clear symbols
+	display_buff[1] = display_numbers[month / 10 % 10]; // MM tens (small)
+	display_buff[0] = display_numbers[month % 10];      // MM units (small)
+}
+
+/* Display cycling: 10sec temp, 5sec time, 5sec date */
+_attribute_ram_code_
+void update_display_cycle(void) {
+	if (display_cycle_stage == 0) {
+		// Show temperature and humidity (10 seconds)
+		// Temperature is in display_buff via main display logic
+	} else if (display_cycle_stage == 1) {
+		// Show local time HH:MM (5 seconds)
+		show_local_time();
+	} else if (display_cycle_stage == 2) {
+		// Show date MMDD with YY and DST indicator (5 seconds)
+		show_date_with_dst();
+	}
+	
+	// Cycle to next stage
+	display_cycle_stage = (display_cycle_stage + 1) % 3; // 0,1,2,0,1,2...
+}
 #endif // USE_DISPLAY_CLOCK
 
 #endif // DEVICE_TYPE == DEVICE_LYWSD03MMC

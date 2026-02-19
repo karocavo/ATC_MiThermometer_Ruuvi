@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "LYWSD03MMC",
+            "includePath": [
+                "${workspaceFolder}/SDK/components",
+                "${workspaceFolder}/src"
+            ],
+            "defines": [
+                "DEVICE_TYPE=DEVICE_LYWSD03MMC",
+                "CHIP_TYPE=CHIP_TYPE_8258"
+            ],
+            "compilerPath": "${workspaceFolder}/SDK/tools/linux/tc32/bin/tc32-elf-gcc",
+            "cStandard": "gnu99",
+            "cppStandard": "gnu++11",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}

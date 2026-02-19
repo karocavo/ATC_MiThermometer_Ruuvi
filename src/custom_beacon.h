@@ -83,9 +83,27 @@ typedef struct __attribute__((packed)) _adv_atc_enc_t {
 	u8		mic[4];		//@8..11
 } adv_atc_enc_t, * padv_atc_enc_t;
 
+/* Ruuvi RAWv2 beacon format (Manufacturer Specific Data) */
+typedef struct __attribute__((packed)) _adv_ruuvi_t {
+	u8		size;		// = 0x1B
+	u8		uid;		// = 0xFF (Manufacturer Specific Data)
+	u16		mfr_id;		// = 0x0499 (Ruuvi Innovations, little-endian)
+	u8		data_type;	// = 0x05 (RAWv2)
+	u8		temp[2];	// Temperature, signed 0.005 C
+	u8		humi[2];	// Humidity, unsigned 0.0025%
+	u8		pressure[2]; // Pressure, unsigned (Pa - 50000)
+	u8		accel_x[2];	// Acceleration X, signed (mg)
+	u8		accel_y[2];	// Acceleration Y, signed (mg)
+	u8		accel_z[2];	// Acceleration Z, signed (mg)
+	u8		power_info[2]; // Battery (mV) + Tx power (dBm)
+	u8		move_count;	// Movement counter
+	u8		meas_seq[2];	// Measurement sequence
+	u8		MAC[6];		// MAC address
+} adv_ruuvi_t, * padv_ruuvi_t;
 
 void pvvx_data_beacon(void);
 void atc_data_beacon(void);
+void ruuvi_data_beacon(void);
 #if (DEV_SERVICES & SERVICE_RDS)
 void pvvx_event_beacon(u8 n); // n = RDS_TYPES
 void default_event_beacon(void);

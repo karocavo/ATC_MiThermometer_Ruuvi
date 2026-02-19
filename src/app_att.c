@@ -85,7 +85,7 @@ static const u8 my_ManCharVal[5] = {
 	U16_LO(DeviceInformation_ManName_DP_H), U16_HI(DeviceInformation_ManName_DP_H),
 	U16_LO(CHARACTERISTIC_UUID_MANUFACTURER_NAME), U16_HI(CHARACTERISTIC_UUID_MANUFACTURER_NAME)
 };
-static const u8 my_FirmStr[] = {"github.com/pvvx"};
+static const u8 my_FirmStr[] = {"github.com/karocavo"};
 #if USE_FLASH_SERIAL_UID
 RAM u8 my_SerialStr[20]; // "556202-C86013-123456"
 #endif

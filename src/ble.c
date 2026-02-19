@@ -565,16 +565,29 @@ void ble_set_name(void) {
 		ble_name[3] = 'G';
 		ble_name[4] = '3';
 		ble_name[5] = '_';
+#elif DEVICE_TYPE == DEVICE_LYWSD03MMC
+		ble_name[2] = 'R';
+		ble_name[3] = 'u';
+		ble_name[4] = 'u';
+		ble_name[5] = 'V';
+		ble_name[6] = 'i';
+		ble_name[7] = '_';
+		u8 *p = str_bin2hex(&ble_name[8], &mac_public[2], 1);
+		p = str_bin2hex(p, &mac_public[1], 1);
+		p = str_bin2hex(p, &mac_public[0], 1);
+		len = 14;  // "RuuVi_XXXXXX"
 #else
 		ble_name[2] = 'A';
 		ble_name[3] = 'T';
 		ble_name[4] = 'C';
 		ble_name[5] = '_';
 #endif
-		u8 *p = str_bin2hex(&ble_name[6], &mac_public[2], 1);
-		p = str_bin2hex(p, &mac_public[1], 1);
-		p = str_bin2hex(p, &mac_public[0], 1);
-		len = 10;
+		if (len < 1) {  // Only add MAC hex if not set by device-specific code above
+			u8 *p = str_bin2hex(&ble_name[6], &mac_public[2], 1);
+			p = str_bin2hex(p, &mac_public[1], 1);
+			p = str_bin2hex(p, &mac_public[0], 1);
+			len = 10;
+		}
 	}
 	my_Attributes[GenericAccess_DeviceName_DP_H].attrLen = len;
 	ble_name[0] = (u8)(len + 1);
@@ -743,7 +756,7 @@ __attribute__((optimize("-Os"))) void init_ble(void) {
 }
 
 
-/* adv_type: 0 - atc1441, 1 - Custom,  2 - Mi, 3 - HA_BLE  */
+/* adv_type: 0 - atc1441, 1 - Ruuvi RAWv2, 2 - Mi, 3 - BTHome  */
 _attribute_ram_code_
 __attribute__((optimize("-Os")))
 void set_adv_data(void) {
@@ -754,12 +767,12 @@ void set_adv_data(void) {
 	if (cfg.flg2.adv_crypto) {
 #if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
 #if USE_CUSTOM_BEACON
-		if (adv_type == ADV_TYPE_PVVX) {
-			pvvx_encrypt_data_beacon();
+		if (adv_type == ADV_TYPE_PVVX) { // Ruuvi RAWv2
+			ruuvi_data_beacon();
 		} else
 #endif
 #if USE_BTHOME_BEACON
-		if (adv_type == ADV_TYPE_BTHOME) { // adv_type == 3
+		if (adv_type == ADV_TYPE_BTHOME) {
 			bthome_encrypt_data_beacon();
 		} else
 #endif
@@ -782,12 +795,12 @@ void set_adv_data(void) {
 	{
 #if (USE_CUSTOM_BEACON + USE_BTHOME_BEACON + USE_MIHOME_BEACON + USE_ATC_BEACON) > 1
 #if USE_CUSTOM_BEACON
-		if (adv_type == ADV_TYPE_PVVX) {
-			pvvx_data_beacon();
+		if (adv_type == ADV_TYPE_PVVX) { // Ruuvi RAWv2
+			ruuvi_data_beacon();
 		} else
 #endif
 #if USE_BTHOME_BEACON
-		if (adv_type == ADV_TYPE_BTHOME) { // adv_type == 3
+		if (adv_type == ADV_TYPE_BTHOME) {
 			bthome_data_beacon();
 		} else
 #endif

@@ -77,7 +77,7 @@ const cfg_t def_cfg = {
 		.flg.temp_F_or_C = false,
 		.flg.comfort_smiley = true,
 		.flg.lp_measures = true,
-		.flg.advertising_type = ADV_TYPE_DEFAULT,
+		.flg.advertising_type = ADV_TYPE_PVVX, // Ruuvi RAWv2 beacon
 		.rf_tx_power = RF_POWER_P0p04dBm, // RF_POWER_P3p01dBm,
 		.connect_latency = DEF_CONNECT_LATENCY, // (49+1)*1.25*16 = 1000 ms
 		.event_adv_cnt = 6,
@@ -92,13 +92,16 @@ const cfg_t def_cfg = {
 #endif
 #elif DEVICE_TYPE == DEVICE_LYWSD03MMC
 		.flg2.adv_flags = true,
-		.advertising_interval = 40, // multiply by 62.5 ms = 2.5 sec
+		.advertising_interval = 160, // multiply by 62.5 ms = 10 sec (max for u8)
 		.flg.comfort_smiley = true,
-		.measure_interval = 4, // * advertising_interval = 10 sec
-		.min_step_time_update_lcd = 49, //x0.05 sec,   2.45 sec
+		.flg.show_time_smile = true,
+		.measure_interval = 4, // 4 * 10 sec = 40 sec measurement cycle
+		.min_step_time_update_lcd = 200, // x0.05 sec = 10 sec update interval (30sec temp + 10sec time/date)
+		.tz_offset = 0, // timezone offset (0 = UTC, adjust per region)
+		.flg_dst = 0, // DST not active by default
 		.hw_ver = HW_VER_LYWSD03MMC_B14,
 #if (DEV_SERVICES & SERVICE_HISTORY)
-		.averaging_measurements = 180, // * measure_interval = 10 * 180 = 1800 sec = 30 minutes
+		.averaging_measurements = 3, // 3 * 40 sec = 120 sec = log every 2 minutes (21,268 records * 2min = 29.5 days)
 #endif
 #elif DEVICE_TYPE == DEVICE_MHO_C401
 		.flg2.adv_flags = true,
@@ -860,14 +863,14 @@ void user_init_normal(void) {//this will get executed one time after power up
 		flash_write_cfg(&cfg, EEP_ID_CFG, sizeof(cfg));
 #endif // #if (DEV_SERVICES & SERVICE_LE_LR)
 		analog_write(DEEP_ANA_REG0, 0x55);
-#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
 #if POWERUP_SCREEN
 		init_lcd();
 		SHOW_REBOOT_SCREEN();
 #endif // POWERUP_SCREEN
+#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
 		// RTC wakes up after powering on > 1 second.
 		go_sleep(1500*CLOCK_16M_SYS_TIMER_CLK_1MS);  // go deep-sleep 1.5 sec
-#endif // SHOW_REBOOT_SCREEN || (DEV_SERVICES & SERVICE_HARD_CLOCK)
+#endif // (DEV_SERVICES & SERVICE_HARD_CLOCK)
 	}
 #endif // POWERUP_SCREEN || (DEV_SERVICES & SERVICE_HARD_CLOCK) || (DEV_SERVICES & SERVICE_LE_LR)
 #if (DEV_SERVICES & SERVICE_SCREEN)
@@ -1240,7 +1243,9 @@ void main_loop(void) {
 #if USE_SYNC_SCAN
 			if (scan.cfg.interval
 			&& wrk.utc_time_sec - scan.start_time > scan.cfg.interval
+#if (DEV_SERVICES & SERVICE_LE_LR)
 			&& adv_buf.ext_adv_init == EXT_ADV_Off // not support extension advertise
+#endif
 			&& !wrk.ble_connected
 			&& !blta.adv_duraton_en) {
 				scan.start_time = wrk.utc_time_sec;

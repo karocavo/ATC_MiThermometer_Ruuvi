@@ -32,12 +32,12 @@ enum {
 // Adv. types
 enum {
 	ADV_TYPE_ATC = 0,
-	ADV_TYPE_PVVX,
+	ADV_TYPE_PVVX,  // Will broadcast Ruuvi RAWv2 instead
 	ADV_TYPE_MI,
 	ADV_TYPE_BTHOME // (default)
 } ADV_TYPE_ENUM;
 
-#define ADV_TYPE_DEFAULT	ADV_TYPE_BTHOME
+#define ADV_TYPE_DEFAULT	ADV_TYPE_PVVX
 
 // cfg.flg
 #define MASK_FLG_LP_MSR	   0x80 // lp_measures
@@ -134,6 +134,8 @@ typedef struct __attribute__((packed)) _cfg_t {
 	u8 min_step_time_update_lcd; // x0.05 sec, 0.5..12.75 sec (10..255)
 	u8 hw_ver; // read only
 	u8 averaging_measurements; // * measure_interval, 0 - off, 1..255 * measure_interval
+	s8 tz_offset; // timezone offset in hours, -12..+14
+	u8 flg_dst; // daylight saving time: bit0 - enabled, bit1 - active
 }cfg_t;
 extern cfg_t cfg;
 extern const cfg_t def_cfg;
