@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-#define VERSION 0x58	 // BCD format (0x34 -> '3.4')
+#define VERSION 0x57	 // BCD format (0x34 -> '3.4')
 #define EEP_SUP_VER 0x09 // EEP data minimum supported version
 
 // DevID:
@@ -480,6 +480,7 @@ extern "C" {
 		| SERVICE_BINDKEY \
 		| SERVICE_HISTORY \
 		| SERVICE_SCREEN \
+		| SERVICE_LE_LR \
 		| SERVICE_THS \
 		| SERVICE_KEY \
 		| SERVICE_RDS \
@@ -490,11 +491,6 @@ extern "C" {
 )
 
 #define USE_EPD				0 // min update time ms
-
-/* Beacons - only BTHOME and Ruuvi to save RAM space */
-#define USE_MIHOME_BEACON		0	// Disable MI beacon
-#define USE_ATC_BEACON		0	// Disable ATC beacon
-#define USE_CUSTOM_BEACON		1	// Keep Ruuvi beacon implementation
 
 #define USE_SENSOR_CHT8305		0
 #define USE_SENSOR_CHT8215		0
@@ -1269,10 +1265,10 @@ extern "C" {
 #define USE_SENSOR_SHT30		0
 #endif
 
-#define USE_CUSTOM_BEACON	1	// = 1 Ruuvi RAWv2
+#define USE_CUSTOM_BEACON	0
 #define USE_BTHOME_BEACON	1 	// = 1 BTHome v2 https://bthome.io/
-#define USE_MIHOME_BEACON	1 	// = 1 Enabled
-#define USE_ATC_BEACON		1 	// = 1 Enabled
+#define USE_MIHOME_BEACON	0 	// = 1 Compatible with MiHome beacon
+#define USE_ATC_BEACON		0
 
 #define SHL_ADC_VBAT		1  // "B0P" in adc.h
 #define GPIO_VBAT			GPIO_PB0 // missing pin on case TLSR8251F512ET24
@@ -1366,7 +1362,7 @@ extern "C" {
 #define USE_SENSOR_SHTC3		0
 #define USE_SENSOR_SHT30		0
 
-#define SENSOR_SLEEP_MEASURE	1	// Enable sleep mode between measurements to save battery
+#define SENSOR_SLEEP_MEASURE	0
 
 #define SHL_ADC_VBAT		1  // "B0P" in adc.h
 #define GPIO_VBAT			GPIO_PB0 // missing pin on case TLSR8251F512ET24
@@ -1659,10 +1655,10 @@ extern "C" {
 #define USE_SENSOR_SHT30		1
 #endif
 
-#define USE_CUSTOM_BEACON	1	// = 1 Ruuvi RAWv2
+#define USE_CUSTOM_BEACON	0	// = 0!
 #define USE_BTHOME_BEACON	1 	// = 1 BTHome v2 https://bthome.io/
-#define USE_MIHOME_BEACON	1 	// = 1 Enabled
-#define USE_ATC_BEACON		1	// = 1 Enabled
+#define USE_MIHOME_BEACON	0 	// = 0!
+#define USE_ATC_BEACON		0	// = 0!
 
 #define SHL_ADC_VBAT		1  // "B0P" in adc.h
 #define GPIO_VBAT			GPIO_PB0 // missing pin on case TLSR8251F512ET24

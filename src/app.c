@@ -96,9 +96,9 @@ const cfg_t def_cfg = {
 		.flg.comfort_smiley = true,
 		.flg.show_time_smile = true,
 		.measure_interval = 4, // 4 * 10 sec = 40 sec measurement cycle
-		.min_step_time_update_lcd = 200, // x0.05 sec = 10 sec update interval (30sec temp + 10sec time/date)
-		.tz_offset = 0, // timezone offset (0 = UTC, adjust per region)
-		.flg_dst = 0, // DST not active by default
+		.min_step_time_update_lcd = 100, // x0.05 sec = 5 sec update interval for time/date cycling
+		.tz_offset = 1, // Bratislava timezone: UTC+1 (CET)
+		.flg_dst = 1, // DST active by default (European summer time)
 		.hw_ver = HW_VER_LYWSD03MMC_B14,
 #if (DEV_SERVICES & SERVICE_HISTORY)
 		.averaging_measurements = 3, // 3 * 40 sec = 120 sec = log every 2 minutes (21,268 records * 2min = 29.5 days)
@@ -857,26 +857,40 @@ void user_init_normal(void) {//this will get executed one time after power up
 #endif
 	test_config();
 #if (POWERUP_SCREEN) || (DEV_SERVICES & SERVICE_HARD_CLOCK) || (DEV_SERVICES & SERVICE_LE_LR)
-	if(analog_read(DEEP_ANA_REG0) != 0x55) {
+	u8 first_boot = (analog_read(DEEP_ANA_REG0) != 0x55);
+	if(first_boot) {
 #if (DEV_SERVICES & SERVICE_LE_LR)
 		cfg.flg2.longrange = 0;
 		flash_write_cfg(&cfg, EEP_ID_CFG, sizeof(cfg));
 #endif // #if (DEV_SERVICES & SERVICE_LE_LR)
 		analog_write(DEEP_ANA_REG0, 0x55);
-#if POWERUP_SCREEN
-		init_lcd();
-		SHOW_REBOOT_SCREEN();
-#endif // POWERUP_SCREEN
-#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
-		// RTC wakes up after powering on > 1 second.
-		go_sleep(1500*CLOCK_16M_SYS_TIMER_CLK_1MS);  // go deep-sleep 1.5 sec
-#endif // (DEV_SERVICES & SERVICE_HARD_CLOCK)
 	}
 #endif // POWERUP_SCREEN || (DEV_SERVICES & SERVICE_HARD_CLOCK) || (DEV_SERVICES & SERVICE_LE_LR)
 #if (DEV_SERVICES & SERVICE_SCREEN)
 	memcpy(&ext, &def_ext, sizeof(ext));
 #endif
 	init_ble();
+#if (POWERUP_SCREEN) || (DEV_SERVICES & SERVICE_HARD_CLOCK)
+	if(first_boot) {
+#if POWERUP_SCREEN
+		init_lcd();
+		SHOW_REBOOT_SCREEN();  // Show Ruuvi branding + MAC (now mac_public is initialized!)
+#endif // POWERUP_SCREEN
+#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
+		// RTC wakes up after powering on > 1 second.
+		// Boot display takes ~6 sec, so minimal additional sleep needed
+		go_sleep(500*CLOCK_16M_SYS_TIMER_CLK_1MS);  // go deep-sleep 0.5 sec for RTC stabilization
+#endif // (DEV_SERVICES & SERVICE_HARD_CLOCK)
+	}
+#endif // POWERUP_SCREEN || SERVICE_HARD_CLOCK
+#if (DEV_SERVICES & SERVICE_SCREEN)
+	// Force immediate LCD update ONLY after OTA/reboot (not first boot)
+	// First boot has no valid sensor data in retention RAM yet
+	if(!first_boot) {
+		wrk.msc.all_flgs = 0xff;
+		lcd_flg.tim_last_chow = clock_time() - lcd_flg.min_step_time_update_lcd;
+	}
+#endif
 	bls_app_registerEventCallback(BLT_EV_FLAG_SUSPEND_EXIT, &suspend_exit_cb);
 #if (DEV_SERVICES & SERVICE_KEY) || (DEV_SERVICES & SERVICE_RDS) || (USE_SENSOR_HX71X)
 #if !defined(SET_NO_SLEEP_MODE)
@@ -1199,6 +1213,17 @@ void main_loop(void) {
 			if(sensor_cfg.time_measure == 0)
 #endif
 			{
+#if (DEV_SERVICES & SERVICE_SCREEN)
+				// For display devices, trigger measurements on LCD update timer
+				if((wrk.ble_connected && (new - wrk.tim_measure >= wrk.measurement_step_time))
+					|| (new - lcd_flg.tim_last_chow >= lcd_flg.min_step_time_update_lcd)) {
+					if(wrk.ble_connected) {
+						wrk.tim_measure = new;
+						adv_buf.meas_count = 0;
+					}
+					wrk.start_measure = 1;
+				}
+#else
 				if(wrk.ble_connected) {
 					if (new - wrk.tim_measure >= wrk.measurement_step_time) {
 						wrk.tim_measure = new;
@@ -1206,6 +1231,7 @@ void main_loop(void) {
 						wrk.start_measure = 1;
 					}
 				}
+#endif
 			}
 #endif
 #if (DEV_SERVICES & SERVICE_SCREEN)

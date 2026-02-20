@@ -336,7 +336,6 @@ void cmd_parser(void * p) {
 				SET_LCD_UPDATE();
 #else
 				lcd_flg.update_next_measure = 0;
-				lcd_flg.update = 1;  // Force immediate LCD update
 #endif
 			}
 			ble_send_ext();
@@ -347,11 +346,8 @@ void cmd_parser(void * p) {
 			u8 tst2 = ((volatile u8 *)&cfg.flg)[0];
 #endif
 			if (len) {
-				/* Reject malformed cfg writes (wrong size) to avoid struct corruption */
-				if (len != sizeof(cfg)) {
-					len = 0; // ignore write, fall through to send current cfg
-				} else {
-					memcpy(&cfg, &req->dat[1], len);
+				if (len > sizeof(cfg)) len = sizeof(cfg);
+				memcpy(&cfg, &req->dat[1], len);
 #if (DEV_SERVICES & SERVICE_SCREEN)
 #if (DEVICE_TYPE == DEVICE_MJWSD05MMC) || (DEVICE_TYPE == DEVICE_MJWSD05MMC_EN)
 				SET_LCD_UPDATE();
@@ -359,7 +355,6 @@ void cmd_parser(void * p) {
 				lcd_flg.update_next_measure = 0;
 #endif
 #endif // DEV_SERVICES & SERVICE_SCREEN
-				}
 			}
 			test_config();
 			tmp ^= ((volatile u8 *)&cfg.flg2)[0];
@@ -378,7 +373,7 @@ void cmd_parser(void * p) {
 			}
 			flash_write_cfg(&cfg, EEP_ID_CFG, sizeof(cfg));
 			ble_send_cfg();
-	} else if (cmd == CMD_ID_CFG_DEF) { // Set default config
+		} else if (cmd == CMD_ID_CFG_DEF) { // Set default config
 			u8 tmp = ((volatile u8 *)&cfg.flg2)[0];
 			memcpy(&cfg, &def_cfg, sizeof(cfg));
 			test_config();

@@ -511,10 +511,64 @@ void show_ota_screen(void) {
 		lcd_send_i2c_byte(0xf2);
 }
 
+// Ruuvi branding with MAC display
+/* Display format on boot:
+   Shows "ruu" with last 3 bytes of MAC address cycling
+   Each MAC byte displayed for 1.8 sec with 0.2 sec blank between
+   Total: ~6 seconds boot screen
+ */
+void show_ruuvi_mac(void) {
+	extern u8 mac_public[6];
+	
+	#define LCD_SYM_r  0b01000010 // lowercase "r" (segments: top, top-left, middle)
+	#define LCD_SYM_u  0b11000100 // lowercase "u" (segments: left, bottom, right sides)
+
+	// Give LCD controller time to stabilize after init
+	pm_wait_ms(100);
+	
+	// Display MAC[2] with "ruu" 
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[0] = display_numbers[mac_public[2] & 0x0f];    // MAC low nibble (right digit)
+	display_buff[1] = display_numbers[mac_public[2] >> 4];      // MAC high nibble (left digit)
+	display_buff[2] = 0;         // No symbol
+	display_buff[3] = LCD_SYM_u; // "u"
+	display_buff[4] = LCD_SYM_u; // "u"
+	display_buff[5] = LCD_SYM_r; // "r"
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Blank (show "ruu" only, no number)
+	display_buff[0] = 0;
+	display_buff[1] = 0;
+	send_to_lcd();
+	pm_wait_ms(200);
+	
+	// Display MAC[1] with "ruu"
+	display_buff[0] = display_numbers[mac_public[1] & 0x0f];
+	display_buff[1] = display_numbers[mac_public[1] >> 4];
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Blank
+	display_buff[0] = 0;
+	display_buff[1] = 0;
+	send_to_lcd();
+	pm_wait_ms(200);
+	
+	// Display MAC[0] (last/lowest byte) with "ruu"
+	display_buff[0] = display_numbers[mac_public[0] & 0x0f];
+	display_buff[1] = display_numbers[mac_public[0] >> 4];
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Clear for normal operation
+	memset(&display_buff, 0, sizeof(display_buff));
+	send_to_lcd();
+}
+
 // #define SHOW_REBOOT_SCREEN()
 void show_reboot_screen(void) {
-	memset(&display_buff, 0xff, sizeof(display_buff));
-	send_to_lcd();
+	show_ruuvi_mac();
 }
 
 #if	USE_DISPLAY_CLOCK
@@ -532,18 +586,17 @@ void show_clock(void) {
 }
 
 /* Display cycling: 10sec temp, 5sec time, 5sec date */
-RAM u8 display_cycle_stage = 0; // 0 = temp/humi (10sec), 1 = time (5sec), 2 = date (5sec)
-
+RAM u8 display_cycle_stage = 0; // 0 = temp/humi, 1 = time, 2 = date
 _attribute_ram_code_
 void show_local_time(void) {
 	s32 local_sec = wrk.utc_time_sec + (cfg.tz_offset * 3600); // Add timezone offset
 	if (cfg.flg_dst & 0x01) local_sec += 3600; // Add DST offset if active
-	
+
 	u32 tmp = local_sec / 60;
 	u32 min = tmp % 60;
 	u32 hrs = (tmp / 60) % 24;
 
-	// Time format: HH (big digits) and MM (small digits)
+	// Time format: HH (big) MM (small)
 	display_buff[5] = display_numbers[hrs / 10 % 10];
 	display_buff[4] = display_numbers[hrs % 10];
 	display_buff[3] = 0;
@@ -557,14 +610,13 @@ void show_date_with_dst(void) {
 	// Calculate date from UTC time with timezone offset
 	s32 local_sec = wrk.utc_time_sec + (cfg.tz_offset * 3600);
 	if (cfg.flg_dst & 0x01) local_sec += 3600; // Add DST offset if enabled
-	
+
 	// Days since epoch (1970-01-01)
 	u32 days = local_sec / 86400;
-	
-	// Simplified date calculation (approximate, assumes 365 days/year)
-	u32 year = 1970 + days / 365;
+
+	// Simplified date calculation
 	u32 day_of_year = days % 365 + 1;
-	
+
 	// Month/day lookup (simplified for non-leap year)
 	static const u8 days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 	u8 month = 1;
@@ -576,9 +628,8 @@ void show_date_with_dst(void) {
 		}
 		day -= days_in_month[i];
 	}
-	
-	// Display format: DD in big digits, MM in small digits (fits LYWSD03MMC LCD)
-	// Example: Nov 26 -> big: 26, small: 11
+
+	// Display format: DD (big), MM (small)  Example: Nov 26 -> big: 26, small: 11
 	display_buff[5] = display_numbers[day / 10 % 10];  // DD tens (big)
 	display_buff[4] = display_numbers[day % 10];       // DD units (big)
 	display_buff[3] = 0;                               // blank
@@ -591,16 +642,15 @@ void show_date_with_dst(void) {
 _attribute_ram_code_
 void update_display_cycle(void) {
 	if (display_cycle_stage == 0) {
-		// Show temperature and humidity (10 seconds)
-		// Temperature is in display_buff via main display logic
+		// Temperature and humidity: handled by main display logic
 	} else if (display_cycle_stage == 1) {
 		// Show local time HH:MM (5 seconds)
 		show_local_time();
 	} else if (display_cycle_stage == 2) {
-		// Show date MMDD with YY and DST indicator (5 seconds)
+		// Show date DDMM with timezone/DST (5 seconds)
 		show_date_with_dst();
 	}
-	
+
 	// Cycle to next stage
 	display_cycle_stage = (display_cycle_stage + 1) % 3; // 0,1,2,0,1,2...
 }

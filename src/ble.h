@@ -2,7 +2,6 @@
 #define _BLE_H_
 
 #include "app.h"
-#include "cmd_parser.h" // for CMD_ID_CFG
 #include "stack/ble/ble.h"
 
 #define BTHOME_UUID16 0xFCD2 // 16-bit UUID Service 0xFCD2 BTHOME
@@ -206,7 +205,10 @@ void ev_adv_timeout(u8 e, u8 *p, int n);
 void set_pvvx_adv_data(void);
 void set_atc_adv_data(void);
 void set_mi_adv_data(void);
+
+#if (DEV_SERVICES & SERVICE_LE_LR)
 void load_adv_data(void);
+#endif
 
 #if (DEV_SERVICES & (SERVICE_THS | SERVICE_18B20 | SERVICE_PLM))
 inline void ble_send_temp01(void) {
@@ -238,11 +240,8 @@ inline void ble_send_battery(void) {
 }
 
 inline void ble_send_cfg(void) {
-	// Always rebuild the header because the RX characteristic buffer is reused for writes
-	my_RxTx_Data[0] = CMD_ID_CFG;
-	my_RxTx_Data[1] = VERSION;
 	memcpy(&my_RxTx_Data[2], &cfg, sizeof(cfg));
-	bls_att_pushNotifyData(RxTx_CMD_OUT_DP_H, my_RxTx_Data, sizeof(cfg) + 2);
+	bls_att_pushNotifyData(RxTx_CMD_OUT_DP_H, my_RxTx_Data, sizeof(cfg) + 3);
 }
 
 #endif //_BLE_H_

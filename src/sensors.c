@@ -482,14 +482,13 @@ static int read_sensor_sht30_shtc3_sht4x(void) {
 #endif
 				// read data ok
 				sensor_calk_th(_temp, _humi);
-				ret = 1; // Mark success - data was read successfully
 #if USE_SENSOR_SHTC3
 				if (sensor_cfg.sensor_type == TH_SENSOR_SHTC3) {
-					sleep_us(1000); // Wait 1ms for sensor I2C state to settle
-					if(send_i2c_word(sensor_cfg.i2c_addr, SHTC3_GO_SLEEP)) { // Try sleep
-						sleep_us(500);
-						send_i2c_word(sensor_cfg.i2c_addr, SHTC3_GO_SLEEP); // Retry if first attempt failed
-					}
+				if(send_i2c_word(sensor_cfg.i2c_addr, SHTC3_GO_SLEEP)) { // Sleep command of the sensor
+					ret = 0;
+				} else {
+					ret = 1; // Success: data read, sensor put to sleep
+				}
 				} else
 #endif
 #if !SENSOR_SLEEP_MEASURE
