@@ -81,15 +81,23 @@ void lcd(void) {
 		if (cycle == 1) {
 			// Show time (HH:MM format)
 			show_local_time();
+			show_battery_symbol(0);
+#if (SHOW_SMILEY)
+			show_smiley(0);
+#endif
+			show_temp_symbol(0); // Clear temp symbol
 			show_ble_symbol(_ble_con);
-			memset(&display_cmp_buff, 0xFF, sizeof(display_cmp_buff));
 			return;
 		}
 		if (cycle == 2) {
 			// Show date (DD:MM format)
 			show_date_with_dst();
+			show_battery_symbol(0);
+#if (SHOW_SMILEY)
+			show_smiley(0);
+#endif
+			show_temp_symbol(0); // Clear temp symbol
 			show_ble_symbol(_ble_con);
-			memset(&display_cmp_buff, 0xFF, sizeof(display_cmp_buff));
 			return;
 		}
 		// cycle == 0: fall through to show temp/humidity below

@@ -48,9 +48,16 @@
 
 
 void app_enter_ota_mode(void);
+int app_advertise_prepare_handler(void *p);
+#if SENSOR_SLEEP_MEASURE
+void WakeupLowPowerCb(int par);
+#else
+void read_sensors(void);
+#endif
 
 RAM measured_data_t measured_data;
 RAM work_flg_t wrk;
+RAM u8 first_boot_flag = 0;  // Track first boot for immediate sensor read on first wake
 
 #if (DEV_SERVICES & SERVICE_KEY) || (DEV_SERVICES & SERVICE_RDS)
 RAM ext_key_t ext_key; // extension keys
@@ -858,6 +865,7 @@ void user_init_normal(void) {//this will get executed one time after power up
 	test_config();
 #if (POWERUP_SCREEN) || (DEV_SERVICES & SERVICE_HARD_CLOCK) || (DEV_SERVICES & SERVICE_LE_LR)
 	u8 first_boot = (analog_read(DEEP_ANA_REG0) != 0x55);
+	first_boot_flag = first_boot;  // Track for first wake sensor read
 	if(first_boot) {
 #if (DEV_SERVICES & SERVICE_LE_LR)
 		cfg.flg2.longrange = 0;
@@ -897,6 +905,8 @@ void user_init_normal(void) {//this will get executed one time after power up
 #if (DEV_SERVICES & (SERVICE_THS | SERVICE_IUS | SERVICE_PLM))
 	init_sensor();
 #endif
+	// Initialize LCD before first sensor read so we can update it immediately
+	init_lcd();
 #if (DEV_SERVICES & SERVICE_PLM) && (USE_SENSOR_PWMRH == 2)
 	init_rh_sensor();
 #endif
@@ -909,7 +919,6 @@ void user_init_normal(void) {//this will get executed one time after power up
 #if	(DEV_SERVICES & SERVICE_HARD_CLOCK)
 	init_rtc();
 #endif
-	init_lcd();
 	set_hw_version();
 #if defined(GPIO_ADC1) || defined(GPIO_ADC2)
 	sensor_go_sleep();
@@ -921,7 +930,8 @@ void user_init_normal(void) {//this will get executed one time after power up
 #if USE_SENSOR_HX71X && (DEV_SERVICES & SERVICE_PRESSURE)
 	hx71x_task();
 #endif
-	lcd();
+	// Don't call lcd() here - let boot screen stay visible until first sensor read completes
+	// lcd();
 #if (!USE_EPD)
 //	update_lcd();
 #endif
@@ -933,10 +943,32 @@ void user_init_normal(void) {//this will get executed one time after power up
 	set_SerialStr();
 #endif
 
+	// Force immediate first measurement: preset counter so next app_advertise_prepare_handler triggers measurement
+	adv_buf.meas_count = cfg.measure_interval - 1;
 	wrk.start_measure = 1;
 
 #if (DEV_SERVICES & SERVICE_18B20)
 	task_my18b20();
+#endif
+
+	// Read sensors immediately after boot to display values right away (before entering main_loop/sleep cycles)
+	// Boot screen ends with cleared LCD, so we need data to display
+#if (DEV_SERVICES & (SERVICE_THS | SERVICE_IUS | SERVICE_PLM))
+#if SENSOR_SLEEP_MEASURE
+	// Sensor is in sleep state after init_sensor(), wake it and trigger measurement
+	start_measure_sensor_deep_sleep();
+	sensor_cfg.time_measure = clock_time() | 1; // Mark measurement in progress
+	// Wait for SHTC3 measurement to complete (~12ms typical, use 15ms to be safe)
+	sleep_us(15000); 
+	// Read the sensor data (WakeupLowPowerCb checks sensor_cfg.time_measure)
+	WakeupLowPowerCb(0);
+#else
+	// Non-sleep-measure mode: just read sensors directly
+	read_sensors();
+#endif
+	// Now measured_data has valid values, update LCD display
+	lcd();
+	update_lcd();
 #endif
 
 	bls_pm_setManualLatency(0);

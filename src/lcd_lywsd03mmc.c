@@ -585,8 +585,6 @@ void show_clock(void) {
 	display_buff[5] = 0;
 }
 
-/* Display cycling: 10sec temp, 5sec time, 5sec date */
-RAM u8 display_cycle_stage = 0; // 0 = temp/humi, 1 = time, 2 = date
 _attribute_ram_code_
 void show_local_time(void) {
 	s32 local_sec = wrk.utc_time_sec + (cfg.tz_offset * 3600); // Add timezone offset
@@ -636,23 +634,6 @@ void show_date_with_dst(void) {
 	display_buff[2] = 0;                               // clear symbols
 	display_buff[1] = display_numbers[month / 10 % 10]; // MM tens (small)
 	display_buff[0] = display_numbers[month % 10];      // MM units (small)
-}
-
-/* Display cycling: 10sec temp, 5sec time, 5sec date */
-_attribute_ram_code_
-void update_display_cycle(void) {
-	if (display_cycle_stage == 0) {
-		// Temperature and humidity: handled by main display logic
-	} else if (display_cycle_stage == 1) {
-		// Show local time HH:MM (5 seconds)
-		show_local_time();
-	} else if (display_cycle_stage == 2) {
-		// Show date DDMM with timezone/DST (5 seconds)
-		show_date_with_dst();
-	}
-
-	// Cycle to next stage
-	display_cycle_stage = (display_cycle_stage + 1) % 3; // 0,1,2,0,1,2...
 }
 #endif // USE_DISPLAY_CLOCK
 
