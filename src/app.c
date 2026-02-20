@@ -883,14 +883,6 @@ void user_init_normal(void) {//this will get executed one time after power up
 #endif // (DEV_SERVICES & SERVICE_HARD_CLOCK)
 	}
 #endif // POWERUP_SCREEN || SERVICE_HARD_CLOCK
-#if (DEV_SERVICES & SERVICE_SCREEN)
-	// Force immediate LCD update ONLY after OTA/reboot (not first boot)
-	// First boot has no valid sensor data in retention RAM yet
-	if(!first_boot) {
-		wrk.msc.all_flgs = 0xff;
-		lcd_flg.tim_last_chow = clock_time() - lcd_flg.min_step_time_update_lcd;
-	}
-#endif
 	bls_app_registerEventCallback(BLT_EV_FLAG_SUSPEND_EXIT, &suspend_exit_cb);
 #if (DEV_SERVICES & SERVICE_KEY) || (DEV_SERVICES & SERVICE_RDS) || (USE_SENSOR_HX71X)
 #if !defined(SET_NO_SLEEP_MODE)
