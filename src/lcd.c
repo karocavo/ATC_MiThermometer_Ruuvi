@@ -64,6 +64,7 @@ __attribute__((optimize("-Os")))
 void lcd(void) {
 	if(cfg.flg2.screen_off)
 		return;
+
 	bool set_small_number_and_bat = true;
 
 #if (DEV_SERVICES & SERVICE_KEY) || (DEV_SERVICES & SERVICE_RDS)
@@ -72,6 +73,28 @@ void lcd(void) {
 #define _ble_con wrk.ble_connected
 #endif
 	bool show_ext = lcd_flg.chow_ext_ut >= wrk.utc_time_sec;
+
+#if USE_DISPLAY_CLOCK && (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+	// Cycle display: 0=temp/humi, 1=time, 2=date
+	if (cfg.flg.show_time_smile && !show_ext) {
+		u8 cycle = lcd_flg.show_stage % 3;
+		if (cycle == 1) {
+			// Show time (HH:MM format)
+			show_local_time();
+			show_ble_symbol(_ble_con);
+			memset(&display_cmp_buff, 0xFF, sizeof(display_cmp_buff));
+			return;
+		}
+		if (cycle == 2) {
+			// Show date (DD:MM format)
+			show_date_with_dst();
+			show_ble_symbol(_ble_con);
+			memset(&display_cmp_buff, 0xFF, sizeof(display_cmp_buff));
+			return;
+		}
+		// cycle == 0: fall through to show temp/humidity below
+	}
+#endif
 	if(cfg.flg.show_time_smile || cfg.flg.show_batt_enabled || show_ext)
 		lcd_flg.update_next_measure = 0;
 	else

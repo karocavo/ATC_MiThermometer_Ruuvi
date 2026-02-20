@@ -80,7 +80,7 @@ extern "C" {
 #define SERVICE_BINDKEY 	0x00000008	// support encryption beacon (bindkey)
 #define SERVICE_HISTORY 	0x00000010	// flash logger enable
 #define SERVICE_SCREEN		0x00000020	// screen
-#define SERVICE_LE_LR		0x00000040	// support extension advertise + LE Long Range
+#define SERVICE_LE_LR		0x00000040	// support extension advertise + LE Long Range (DISABLED for memory)
 #define SERVICE_THS			0x00000080	// T & H sensor
 #define SERVICE_RDS			0x00000100	// wake up when the reed switch + pulse counter
 #define SERVICE_KEY			0x00000200	// key "connect"
@@ -480,11 +480,11 @@ extern "C" {
 		| SERVICE_BINDKEY \
 		| SERVICE_HISTORY \
 		| SERVICE_SCREEN \
-		| SERVICE_LE_LR \
 		| SERVICE_THS \
 		| SERVICE_KEY \
 		| SERVICE_RDS \
 		| SERVICE_TIME_ADJUST \
+		| SERVICE_HARD_CLOCK \
 		| SERVICE_TH_TRG \
 		| SERVICE_SCANTIM \
 		| SERVICE_MI_KEYS \

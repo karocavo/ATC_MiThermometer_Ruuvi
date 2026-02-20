@@ -83,7 +83,9 @@ typedef struct __attribute__((packed)) _adv_atc_enc_t {
 	u8		mic[4];		//@8..11
 } adv_atc_enc_t, * padv_atc_enc_t;
 
-/* Ruuvi RAWv2 beacon format (Manufacturer Specific Data) */
+/* Ruuvi RAWv2 beacon format (Manufacturer Specific Data) - simplified for LYWSD03MMC */
+// Only includes essential fields: temp, humidity, battery, TX power, MAC
+// No pressure, accelerometer, or measurement sequence (not available on LYWSD03MMC)
 typedef struct __attribute__((packed)) _adv_ruuvi_t {
 	u8		size;		// = 0x1B
 	u8		uid;		// = 0xFF (Manufacturer Specific Data)
