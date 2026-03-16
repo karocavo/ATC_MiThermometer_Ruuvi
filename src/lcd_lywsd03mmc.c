@@ -6,6 +6,9 @@
 #include "app.h"
 #include "i2c.h"
 #include "lcd.h"
+#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
+#include "rtc.h"
+#endif
 /*
  *  LYWSD03MMC LCD buffer:  byte.bit
 
@@ -572,6 +575,22 @@ void show_reboot_screen(void) {
 }
 
 #if	USE_DISPLAY_CLOCK
+
+_attribute_ram_code_
+static u32 get_display_time_sec(void) {
+	// Prefer running SW clock; use RTC only if SW clock is not initialized.
+	u32 ut = wrk.utc_time_sec;
+#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
+	if (ut < 946684800) { // 2000-01-01
+		u32 rtc_ut = rtc_get_utime();
+		if (rtc_ut >= 946684800) {
+			ut = rtc_ut;
+		}
+	}
+#endif
+	return ut;
+}
+
 _attribute_ram_code_
 void show_clock(void) {
 	u32 tmp = wrk.utc_time_sec / 60;
@@ -585,55 +604,121 @@ void show_clock(void) {
 	display_buff[5] = 0;
 }
 
+// EU DST rules: Last Sunday of March 01:00 UTC to last Sunday of October 01:00 UTC
+// Returns 1 if DST is active, 0 if not
+_attribute_ram_code_
+static u8 is_dst_active_eu(u32 year, u8 month, u8 day, u8 hour) {
+	// DST active from last Sunday of March 01:00 UTC to last Sunday of October 01:00 UTC
+	if (month < 3 || month > 10) return 0;  // Jan, Feb, Nov, Dec = standard time
+	if (month > 3 && month < 10) return 1;  // Apr-Sep = DST
+	
+	// Find last Sunday of March or October
+	u8 last_sunday;
+	if (month == 3 || month == 10) {
+		// Calculate day of week for last day of month
+		// Use Zeller's congruence (modified for Gregorian calendar)
+		u8 last_day = (month == 3) ? 31 : 31;
+		u32 y = year;
+		u32 m = month;
+		u32 q = last_day;
+		u32 h = (q + (13*(m+1))/5 + y + y/4 - y/100 + y/400) % 7;
+		// h = day of week (0=Sat, 1=Sun, 2=Mon, ...)
+		// Convert: we want Sunday=0
+		h = (h + 6) % 7; // Now: 0=Sun, 1=Mon, ...
+		
+		// Calculate last Sunday
+		last_sunday = last_day - h;
+		
+		if (month == 3) {
+			// March: DST starts at 01:00 UTC on last Sunday
+			if (day < last_sunday) return 0;
+			if (day > last_sunday) return 1;
+			if (hour >= 1) return 1;
+			return 0;
+		} else { // October
+			// October: DST ends at 01:00 UTC on last Sunday
+			if (day < last_sunday) return 1;
+			if (day > last_sunday) return 0;
+			if (hour >= 1) return 0;
+			return 1;
+		}
+	}
+	return 0;
+}
+
 _attribute_ram_code_
 void show_local_time(void) {
-	s32 local_sec = wrk.utc_time_sec + (cfg.tz_offset * 3600); // Add timezone offset
-	if (cfg.flg_dst & 0x01) local_sec += 3600; // Add DST offset if active
+	u32 utc_check = get_display_time_sec();
+	rtc_time_t utc_rtc;
+	utime_to_rtc(utc_check, &utc_rtc);
+	u32 year = 2000 + utc_rtc.year;
+	u8 month = utc_rtc.month;
+	u8 day = utc_rtc.days;
+	u8 hour = utc_rtc.hours;
+	
+	// Update DST active flag if DST is enabled
+	if (cfg.flg_dst & 0x01) { // DST feature enabled
+		if (is_dst_active_eu(year, month, day, hour)) {
+			cfg.flg_dst |= 0x02; // Set DST active bit
+		} else {
+			cfg.flg_dst &= ~0x02; // Clear DST active bit
+		}
+	}
+	
+	s32 local_sec = utc_check + ((s32)cfg.tz_offset * 3600);
+	if ((cfg.flg_dst & 0x01) && (cfg.flg_dst & 0x02)) {
+		local_sec += 3600;
+	}
+	rtc_time_t local_rtc;
+	utime_to_rtc((u32)local_sec, &local_rtc);
+	u8 min = local_rtc.minutes;
+	u8 hrs = local_rtc.hours;
 
-	u32 tmp = local_sec / 60;
-	u32 min = tmp % 60;
-	u32 hrs = (tmp / 60) % 24;
-
-	// Time format: HH (big) MM (small)
-	display_buff[5] = display_numbers[hrs / 10 % 10];
-	display_buff[4] = display_numbers[hrs % 10];
-	display_buff[3] = 0;
-	display_buff[2] = 0;
-	display_buff[1] = display_numbers[min / 10 % 10];
+	// Time format (match native show_clock layout): big HH at [4][3], small MM at [1][0]
 	display_buff[0] = display_numbers[min % 10];
+	display_buff[1] = display_numbers[min / 10 % 10];
+	display_buff[2] = 0;
+	display_buff[3] = display_numbers[hrs % 10];
+	display_buff[4] = display_numbers[hrs / 10 % 10];
+	display_buff[5] = 0;
 }
 
 _attribute_ram_code_
 void show_date_with_dst(void) {
-	// Calculate date from UTC time with timezone offset
-	s32 local_sec = wrk.utc_time_sec + (cfg.tz_offset * 3600);
-	if (cfg.flg_dst & 0x01) local_sec += 3600; // Add DST offset if enabled
+	s32 local_sec = get_display_time_sec() + ((s32)cfg.tz_offset * 3600);
+	if ((cfg.flg_dst & 0x01) && (cfg.flg_dst & 0x02)) {
+		local_sec += 3600;
+	}
+	rtc_time_t local_rtc;
+	utime_to_rtc((u32)local_sec, &local_rtc);
+	u8 month = local_rtc.month;
+	u8 day = local_rtc.days;
+	u8 year_2digit = local_rtc.year;
+	
+	// Display format:
+	// Big display shows MMDD encoded as 4-digit number using [5][4][3]
+	// (byte [5] carries thousands marker and hundreds digit), small shows YY in [1][0]
+	u16 mmdd = (u16)month * 100 + day;
+	display_buff[5] = 0;
+	if (mmdd > 999) display_buff[5] |= 0x08; // thousands marker "1"
+	if (mmdd > 99) display_buff[5] |= display_numbers[(mmdd / 100) % 10]; // hundreds
+	display_buff[4] = display_numbers[(mmdd / 10) % 10]; // tens
+	display_buff[3] = display_numbers[mmdd % 10]; // ones
 
-	// Days since epoch (1970-01-01)
-	u32 days = local_sec / 86400;
-
-	// Simplified date calculation
-	u32 day_of_year = days % 365 + 1;
-
-	// Month/day lookup (simplified for non-leap year)
-	static const u8 days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-	u8 month = 1;
-	u8 day = day_of_year;
-	for (int i = 0; i < 12; i++) {
-		if (day <= days_in_month[i]) {
-			month = i + 1;
-			break;
-		}
-		day -= days_in_month[i];
+	// Small digits [1][0] = YY
+	display_buff[1] = display_numbers[year_2digit / 10]; // Year tens
+	display_buff[0] = display_numbers[year_2digit % 10]; // Year units
+	
+	// DST indicator uses only LCD segment 2.6 (bit 0x40) in symbol field.
+	// Do not render full F/C symbols here.
+	display_buff[2] &= ~0xE0; // clear temp-symbol bits first
+	if ((cfg.flg_dst & 0x01) && (cfg.flg_dst & 0x02)) {
+		display_buff[2] |= BIT(6); // segment 2.6 on when DST active
 	}
 
-	// Display format: DD (big), MM (small)  Example: Nov 26 -> big: 26, small: 11
-	display_buff[5] = display_numbers[day / 10 % 10];  // DD tens (big)
-	display_buff[4] = display_numbers[day % 10];       // DD units (big)
-	display_buff[3] = 0;                               // blank
-	display_buff[2] = 0;                               // clear symbols
-	display_buff[1] = display_numbers[month / 10 % 10]; // MM tens (small)
-	display_buff[0] = display_numbers[month % 10];      // MM units (small)
+	// Hide smiley/battery in date mode for clean date+year presentation.
+	show_smiley(0);
+	show_battery_symbol(0);
 }
 #endif // USE_DISPLAY_CLOCK
 

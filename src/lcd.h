@@ -16,6 +16,7 @@ typedef struct _lcd_flg_t {
 	u8 update_next_measure; 	  // flag update LCD if next_measure
 #endif
 	u8 update; 	  // flag update LCD
+	u8 show_clock_after_disconnect; // runtime override: enable 30-10-10 cycle after BLE disconnect
 	union {
 		struct {
 			// reset all flags on disconnect
@@ -155,6 +156,10 @@ void show_reboot_screen(void);
 #define SHOW_SMILEY		1
 extern u8 display_buff[LCD_BUF_SIZE], display_cmp_buff[LCD_BUF_SIZE];
 void show_small_number(s16 number, bool percent); // -9 .. 99
+#if USE_DISPLAY_CLOCK
+void show_local_time(void);
+void show_date_with_dst(void);
+#endif
 
 #elif DEVICE_TYPE == DEVICE_CGDK2
 

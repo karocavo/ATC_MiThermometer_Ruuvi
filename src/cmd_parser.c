@@ -45,6 +45,62 @@
 RAM u32 utc_set_time_sec; // clock setting time for delta calculation
 #endif
 
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) && (DEV_SERVICES & SERVICE_HARD_CLOCK)
+// EU DST rules: last Sunday of March 01:00 UTC to last Sunday of October 01:00 UTC.
+static u8 is_dst_active_eu_utc(u32 year, u8 month, u8 day, u8 hour) {
+	if (month < 3 || month > 10) return 0;
+	if (month > 3 && month < 10) return 1;
+
+	// Zeller (Gregorian), convert to 0=Sun..6=Sat.
+	u8 last_day = 31;
+	u32 q = last_day;
+	u32 m = month;
+	u32 y = year;
+	u32 h = (q + (13 * (m + 1)) / 5 + y + y / 4 - y / 100 + y / 400) % 7;
+	h = (h + 6) % 7;
+	u8 last_sunday = last_day - h;
+
+	if (month == 3) {
+		if (day < last_sunday) return 0;
+		if (day > last_sunday) return 1;
+		return hour >= 1;
+	}
+	// October
+	if (day < last_sunday) return 1;
+	if (day > last_sunday) return 0;
+	return hour < 1;
+}
+
+// Incoming WebUI value is local wall-clock seconds. Convert to UTC from local date/time.
+static u32 local_wallclock_to_utc(u32 local_sec) {
+	s32 utc = (s32)local_sec - ((s32)cfg.tz_offset * 3600);
+	if (cfg.flg_dst & 0x01) {
+		rtc_time_t local_rtc;
+		utime_to_rtc(local_sec, &local_rtc);
+		u32 local_year = 2000 + local_rtc.year;
+		u8 local_month = local_rtc.month;
+		u8 local_day = local_rtc.days;
+		u8 local_hour = local_rtc.hours;
+
+		// Approximate UTC hour for DST boundary check from local base (before DST subtraction).
+		u8 utc_hour_for_check = local_hour;
+		if (cfg.tz_offset > 0 && local_hour >= (u8)cfg.tz_offset)
+			utc_hour_for_check = local_hour - (u8)cfg.tz_offset;
+
+		u8 dst_active = is_dst_active_eu_utc(local_year, local_month, local_day, utc_hour_for_check);
+		if (dst_active) {
+			utc -= 3600;
+			cfg.flg_dst |= 0x02;
+		} else {
+			cfg.flg_dst &= ~0x02;
+		}
+	}
+	if (utc < 0)
+		utc = 0;
+	return (u32)utc;
+}
+#endif
+
 #if (DEV_SERVICES & SERVICE_MI_KEYS)
 
 //#define SEND_BUFFER_SIZE	 (ATT_MTU_SIZE-3) // = 20
@@ -346,8 +402,23 @@ void cmd_parser(void * p) {
 			u8 tst2 = ((volatile u8 *)&cfg.flg)[0];
 #endif
 			if (len) {
+				u8 prev_show_time_smile = cfg.flg.show_time_smile;
 				if (len > sizeof(cfg)) len = sizeof(cfg);
 				memcpy(&cfg, &req->dat[1], len);
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+				if (cfg.flg.show_time_smile != prev_show_time_smile) {
+					if (cfg.flg.show_time_smile) {
+						if (wrk.ble_connected) {
+							// Reuse connected "show clock" as an arming trigger for post-disconnect 30-10-10.
+							lcd_flg.show_clock_after_disconnect = 1;
+							cfg.flg.show_time_smile = 0;
+						}
+					} else {
+						// Explicit toggle off disables the runtime post-disconnect cycle.
+						lcd_flg.show_clock_after_disconnect = 0;
+					}
+				}
+#endif
 #if (DEV_SERVICES & SERVICE_SCREEN)
 #if (DEVICE_TYPE == DEVICE_MJWSD05MMC) || (DEVICE_TYPE == DEVICE_MJWSD05MMC_EN)
 				SET_LCD_UPDATE();
@@ -376,6 +447,9 @@ void cmd_parser(void * p) {
 		} else if (cmd == CMD_ID_CFG_DEF) { // Set default config
 			u8 tmp = ((volatile u8 *)&cfg.flg2)[0];
 			memcpy(&cfg, &def_cfg, sizeof(cfg));
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+			lcd_flg.show_clock_after_disconnect = 0;
+#endif
 			test_config();
 			tmp ^= ((volatile u8 *)&cfg.flg2)[0];
 			if(tmp & MASK_FLG2_REBOOT) { // (cfg.flg2.bt5phy || cfg.flg2.ext_adv)
@@ -505,6 +579,20 @@ void cmd_parser(void * p) {
 			if (len) {
 				if (len > sizeof(display_buff))
 					len = sizeof(display_buff);
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+				if (wrk.ble_connected) {
+					// WebUI "Send clock data on LCD" should arm post-disconnect 30-10-10.
+					lcd_flg.show_clock_after_disconnect = 1;
+					lcd_flg.show_stage = 3; // force immediate clock stage in 30-10-10 cycle
+				}
+				if (cfg.flg.show_time_smile || lcd_flg.show_clock_after_disconnect) {
+					// In clock-mode workflows, ignore host raw LCD injection (WebUI test clock uses PC time).
+					lcd_flg.b.ext_data_buf = 0;
+					lcd_flg.update = 1;
+					ble_send_lcd();
+					goto cmd_lcd_dump_done;
+				}
+#endif
 				memcpy(display_buff, &req->dat[1], len);
 				lcd_flg.b.ext_data_buf = 1; // update_lcd();
 				lcd_flg.update = 1;	// SET_LCD_UPDATE();
@@ -513,9 +601,21 @@ void cmd_parser(void * p) {
 				lcd_flg.update = 1;	// SET_LCD_UPDATE();
 			}
 			ble_send_lcd();
+			cmd_lcd_dump_done:;
 		} else if (cmd == CMD_ID_LCD_FLG) { // Start/stop notify lcd dump and ...
 			 if (len)
 				 lcd_flg.all_flg = req->dat[1];
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+			 if (len && req->dat[1] == 0) {
+				 // WebUI "Repair LCD" sends 0x61,0: also disable runtime post-disconnect 30-10-10 override.
+				 lcd_flg.show_clock_after_disconnect = 0;
+				 // And clear persistent clock-cycle flag so display returns to stable temp/humi.
+				 if (cfg.flg.show_time_smile) {
+					 cfg.flg.show_time_smile = 0;
+					 flash_write_cfg(&cfg, EEP_ID_CFG, sizeof(cfg));
+				 }
+			 }
+#endif
 			 send_buf[1] = lcd_flg.all_flg;
  			 olen = 2;
 #endif // DEV_SERVICES & SERVICE_SCREEN
@@ -568,7 +668,17 @@ void cmd_parser(void * p) {
 		} else if (cmd == CMD_ID_UTC_TIME) { // Get/set utc time
 			if (len) {
 				if (len > sizeof(wrk.utc_time_sec)) len = sizeof(wrk.utc_time_sec);
-				memcpy(&wrk.utc_time_sec, &req->dat[1], len);
+				u32 incoming_time = wrk.utc_time_sec;
+				memcpy(&incoming_time, &req->dat[1], len);
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) && (DEV_SERVICES & SERVICE_HARD_CLOCK)
+				// WebUI sends local wall-clock seconds; normalize to UTC for internal clock.
+				if (incoming_time >= 946684800) // 2000-01-01
+					wrk.utc_time_sec = local_wallclock_to_utc(incoming_time);
+				else
+					wrk.utc_time_sec = incoming_time;
+#else
+				wrk.utc_time_sec = incoming_time;
+#endif
 #if (DEV_SERVICES & SERVICE_TIME_ADJUST)
 				utc_set_time_sec = wrk.utc_time_sec;
 #endif

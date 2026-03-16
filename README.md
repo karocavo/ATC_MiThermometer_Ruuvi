@@ -18,6 +18,8 @@ _Support for ZigbeeTLc and ZBdevice firmware is in the [ZigbeeTLc](https://githu
 
 _Support for BLE-Zigbee firmware is in the [BZdevice](https://github.com/pvvx/BZdevice) repository._<br>
 
+_For the current Ruuvi/LYWSD03MMC custom behavior implemented in this workspace, see [RUUVI_LYWSD03MMC_CURRENT_BEHAVIOR.md](RUUVI_LYWSD03MMC_CURRENT_BEHAVIOR.md)._
+
 The custom firmware can be flashed _via a modern browser_ and _over-the-air (OTA)_ without opening the device and unlocks several customization options. You can go back to the original firmware at any time. OTA and configuration main page - [TelinkMiFlasher.html](https://pvvx.github.io/ATC_MiThermometer/TelinkMiFlasher.html).
 
 Due to unclear sanctions from English-speaking countries, this and related projects will most likely be closed to English-speaking users. Or provided on a paid basis.

@@ -105,7 +105,7 @@ const cfg_t def_cfg = {
 		.measure_interval = 4, // 4 * 10 sec = 40 sec measurement cycle
 		.min_step_time_update_lcd = 100, // x0.05 sec = 5 sec update interval for time/date cycling
 		.tz_offset = 1, // Bratislava timezone: UTC+1 (CET)
-		.flg_dst = 1, // DST active by default (European summer time)
+		.flg_dst = 0x01, // bit 0: DST enabled (EU rules); bit 1: active state (auto-calculated)
 		.hw_ver = HW_VER_LYWSD03MMC_B14,
 #if (DEV_SERVICES & SERVICE_HISTORY)
 		.averaging_measurements = 3, // 3 * 40 sec = 120 sec = log every 2 minutes (21,268 records * 2min = 29.5 days)
@@ -786,6 +786,12 @@ void user_init_normal(void) {//this will get executed one time after power up
 	if (next_start) {
 		if (flash_read_cfg(&cfg, EEP_ID_CFG, sizeof(cfg)) != sizeof(cfg))
 			memcpy(&cfg, &def_cfg, sizeof(cfg));
+				// Keep user settings, but recover invalid/corrupted TZ/DST fields.
+				if (cfg.tz_offset < -12 || cfg.tz_offset > 14 || (cfg.flg_dst & ~0x03)) {
+						cfg.tz_offset = 1; // Bratislava default: UTC+1
+						cfg.flg_dst = 0x01; // DST enabled, active bit auto-calculated
+						flash_write_cfg(&cfg, EEP_ID_CFG, sizeof(cfg));
+				}
 #if (DEV_SERVICES & SERVICE_SCREEN)
 		if (flash_read_cfg(&cmf, EEP_ID_CMF, sizeof(cmf)) != sizeof(cmf))
 			memcpy(&cmf, &def_cmf, sizeof(cmf));
@@ -876,6 +882,9 @@ void user_init_normal(void) {//this will get executed one time after power up
 #endif // POWERUP_SCREEN || (DEV_SERVICES & SERVICE_HARD_CLOCK) || (DEV_SERVICES & SERVICE_LE_LR)
 #if (DEV_SERVICES & SERVICE_SCREEN)
 	memcpy(&ext, &def_ext, sizeof(ext));
+	lcd_flg.chow_ext_ut = 0;
+	lcd_flg.b.ext_data_buf = 0;
+	lcd_flg.show_clock_after_disconnect = 1; // default behavior after boot: 30-10-10 (if time valid)
 #endif
 	init_ble();
 #if (POWERUP_SCREEN) || (DEV_SERVICES & SERVICE_HARD_CLOCK)
@@ -887,7 +896,7 @@ void user_init_normal(void) {//this will get executed one time after power up
 #if (DEV_SERVICES & SERVICE_HARD_CLOCK)
 		// RTC wakes up after powering on > 1 second.
 		// Boot display takes ~6 sec, so minimal additional sleep needed
-		go_sleep(500*CLOCK_16M_SYS_TIMER_CLK_1MS);  // go deep-sleep 0.5 sec for RTC stabilization
+		pm_wait_ms(500);  // keep BLE init state intact; avoid manual deep-sleep here
 #endif // (DEV_SERVICES & SERVICE_HARD_CLOCK)
 	}
 #endif // POWERUP_SCREEN || SERVICE_HARD_CLOCK
@@ -993,6 +1002,7 @@ void user_init_deepRetn(void) {//after sleep this will get executed
 _attribute_ram_code_
 void main_loop(void) {
 	blt_sdk_main_loop();
+	
 	while (clock_time() -  wrk.utc_time_sec_tick > wrk.utc_time_tick_step) {
 		wrk.utc_time_sec_tick += wrk.utc_time_tick_step;
 		wrk.utc_time_sec++; // + 1 sec

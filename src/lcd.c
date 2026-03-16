@@ -73,13 +73,45 @@ void lcd(void) {
 #define _ble_con wrk.ble_connected
 #endif
 	bool show_ext = lcd_flg.chow_ext_ut >= wrk.utc_time_sec;
+	bool allow_legacy_clock = cfg.flg.show_time_smile;
 
-#if USE_DISPLAY_CLOCK && (DEVICE_TYPE == DEVICE_LYWSD03MMC)
-	// Cycle display: 0=temp/humi, 1=time, 2=date
-	if (cfg.flg.show_time_smile && !show_ext) {
-		u8 cycle = lcd_flg.show_stage % 3;
-		if (cycle == 1) {
-			// Show time (HH:MM format)
+#if USE_DISPLAY_CLOCK
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+	// Runtime clock-cycle mode for LYWSD03MMC:
+	// boot default = enabled, Repair LCD = disabled, Show clock command = enabled.
+	bool cycle_301010 = lcd_flg.show_clock_after_disconnect;
+	bool time_valid = (wrk.utc_time_sec >= 946684800);
+	if (!show_ext && (!cycle_301010 || !time_valid)) {
+#if (SHOW_SMILEY)
+		if (cfg.flg.comfort_smiley) {
+			show_smiley(is_comfort(measured_data.temp, measured_data.humi));
+		} else {
+			show_smiley(cfg.flg2.smiley);
+		}
+#endif
+		show_battery_symbol(0);
+		show_small_number(measured_data.humi_x1, 1);
+		if (cfg.flg.temp_F_or_C) {
+			show_temp_symbol(TMP_SYM_F);
+			show_big_number_x10(((s32)((s32)measured_data.temp * 9) / 50) + 320);
+		} else {
+			show_temp_symbol(TMP_SYM_C);
+			show_big_number_x10(measured_data.temp_x01);
+		}
+		show_ble_symbol(_ble_con);
+		return;
+	}
+
+	// Cycle display: 30sec temp/humi, 10sec time, 10sec date (based on 10sec wakeup intervals)
+	// Stage timing: each stage = 10 seconds (cfg.min_step_time_update_lcd = 5 sec * 100 / (50*us) = 10 sec wakeup)
+	// Actually with min_step_time_update_lcd, each wakeup checks: if >= 5sec then update
+	// With 10sec advertising wakeup: guaranteed to update approximately every 10sec
+	// Stages 0-2 (30sec) = temp/humi, Stage 3 (10sec) = time, Stage 4 (10sec) = date
+	if (cycle_301010 && !show_ext) {
+		allow_legacy_clock = false; // Use dedicated 30-10-10 cycle for LYWSD03MMC.
+		u8 cycle = lcd_flg.show_stage % 5;
+		if (cycle == 3) {
+			// Show time for ~10 seconds (HH big, MM small)
 			show_local_time();
 			show_battery_symbol(0);
 #if (SHOW_SMILEY)
@@ -89,8 +121,8 @@ void lcd(void) {
 			show_ble_symbol(_ble_con);
 			return;
 		}
-		if (cycle == 2) {
-			// Show date (DD:MM format)
+		if (cycle == 4) {
+			// Show date for ~10 seconds (MMDD format with DST indicator)
 			show_date_with_dst();
 			show_battery_symbol(0);
 #if (SHOW_SMILEY)
@@ -100,8 +132,9 @@ void lcd(void) {
 			show_ble_symbol(_ble_con);
 			return;
 		}
-		// cycle == 0: fall through to show temp/humidity below
+		// cycle 0-2: fall through to show temp/humidity for 30 seconds
 	}
+#endif
 #endif
 	if(cfg.flg.show_time_smile || cfg.flg.show_batt_enabled || show_ext)
 		lcd_flg.update_next_measure = 0;
@@ -144,7 +177,7 @@ void lcd(void) {
 				show_small_number((measured_data.battery_level >= 100) ? 99 : measured_data.battery_level, 1);
 #endif // (DEVICE_TYPE == DEVICE_CGG1) || (DEVICE_TYPE == DEVICE_CGDK2)
 				set_small_number_and_bat = false;
-			} else if (cfg.flg.show_time_smile) { // show clock
+				} else if (allow_legacy_clock) { // show clock
 #if	USE_DISPLAY_CLOCK
 				show_clock(); // stage clock
 				show_ble_symbol(_ble_con);
@@ -177,7 +210,7 @@ void lcd(void) {
 	} else {
 		if (lcd_flg.show_stage & 1) { // stage clock/blinking or show battery
 #if	USE_DISPLAY_CLOCK
-			if (cfg.flg.show_time_smile && (lcd_flg.show_stage & 2)) {
+			if (allow_legacy_clock && (lcd_flg.show_stage & 2)) {
 				show_clock(); // stage clock
 				show_ble_symbol(_ble_con);
 				return;
@@ -204,7 +237,7 @@ void lcd(void) {
 				show_small_number((measured_data.battery_level >= 100) ? 99 : measured_data.battery_level, 1);
 #endif // (DEVICE_TYPE == DEVICE_CGG1) || (DEVICE_TYPE == DEVICE_CGDK2)
 				set_small_number_and_bat = false;
-			} else if (cfg.flg.show_time_smile) { // show clock
+				} else if (allow_legacy_clock) { // show clock
 #if	USE_DISPLAY_CLOCK
 				show_clock(); // stage clock
 				show_ble_symbol(_ble_con);
