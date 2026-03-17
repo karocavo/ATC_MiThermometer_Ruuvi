@@ -19,6 +19,11 @@ This note describes the current custom behavior in this workspace for the Ruuvi-
 - Tested workflow focused on Ruuvi (primary) and BTHome (secondary).
 - For strict RAM-focused profiles, extra formats can be disabled per target by `USE_*_BEACON` defines in `src/app_config.h`.
 
+## LE Long Range status
+
+- LE Long Range support exists in code via `SERVICE_LE_LR`, but in the tested RAM-saving profile it is treated as omitted/disabled for stability headroom.
+- Practical guidance used in this workspace: keep Ruuvi/BTHome priority and avoid enabling LR + extra beacon formats together on constrained targets unless revalidated.
+
 ## Tested Targets
 
 - `DEVICE_LYWSD03MMC` old hardware path (B1.4/B1.5): tested.

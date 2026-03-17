@@ -26,6 +26,7 @@ while preserving OTA flashing and normal sensor operation.
 - Default advertising type is Ruuvi (`ADV_TYPE_DEFAULT = ADV_TYPE_PVVX`).
 - Tested usage is Ruuvi first, BTHome second.
 - Additional formats (ATC/MiHome) are still available unless a target profile disables them with `USE_*_BEACON` in `src/app_config.h`.
+- In the tested RAM-saving profile, LE Long Range is treated as omitted/disabled to keep retention-RAM headroom.
 
 **Warning:** 
 * [Firmware version 2.1.1_0159 requires registration in MI-Home and obtaining IDs](https://github.com/pvvx/ATC_MiThermometer/issues/602#issue-2786915630).
