@@ -6,10 +6,16 @@ This note describes the current custom behavior in this workspace for the Ruuvi-
 
 - Firmware version is `V5.8` (`VERSION = 0x58`).
 - Build target is selected by make flag (for example `-DDEVICE_TYPE=DEVICE_LYWSD03MMC` or `-DDEVICE_TYPE=DEVICE_MJWSD06MMC`).
+- Default `make` in this workspace builds `DEVICE_LYWSD03MMC` unless `POJECT_DEF` overrides it.
 - Current default timing for this workspace is:
   - Advertising interval: 10 seconds
   - Measurement interval: 40 seconds
   - LCD stage update threshold: 5 seconds, with practical stage changes following the wake cadence
+
+## Tested Targets
+
+- `DEVICE_LYWSD03MMC` (Ruuvi runtime behavior, time/date cycle flow).
+- `DEVICE_MJWSD06MMC` (Ruuvi boot `ruu` + MAC sequence, MJ6 LCD mapping/send-path fixes).
 
 ## Display behavior
 

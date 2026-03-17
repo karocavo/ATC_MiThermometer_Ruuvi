@@ -8,6 +8,18 @@ boot-screen branding work, and per-device display/runtime fixes (including LYWSD
 Primary usage in this workspace is stable Ruuvi-compatible broadcasting for integrations such as Victron,
 while preserving OTA flashing and normal sensor operation.
 
+## Build Target Selection (Important)
+
+- Default build (`make`) uses `DEVICE_LYWSD03MMC` in this workspace makefile.
+- For other devices, build with explicit device flag:
+    - `make POJECT_DEF="-DDEVICE_TYPE=DEVICE_LYWSD03MMC"`
+    - `make POJECT_DEF="-DDEVICE_TYPE=DEVICE_MJWSD06MMC"`
+
+## Tested Targets In This Workspace
+
+- `DEVICE_LYWSD03MMC`: tested for Ruuvi behavior and runtime clock/date cycle handling.
+- `DEVICE_MJWSD06MMC`: tested for boot-screen `ruu` + MAC display behavior and LCD send-path fixes.
+
 **Warning:** 
 * [Firmware version 2.1.1_0159 requires registration in MI-Home and obtaining IDs](https://github.com/pvvx/ATC_MiThermometer/issues/602#issue-2786915630).
 * Xiaomi LYWSD03MMC version B1.5/B1.6 released since 2025.03 are not recommended for purchase due to [high current consumption](https://github.com/pvvx/ATC_MiThermometer/issues/664#issuecomment-3092344109
