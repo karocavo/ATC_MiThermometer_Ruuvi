@@ -17,8 +17,9 @@ while preserving OTA flashing and normal sensor operation.
 
 ## Tested Targets In This Workspace
 
-- `DEVICE_LYWSD03MMC`: tested for Ruuvi behavior and runtime clock/date cycle handling.
-- `DEVICE_MJWSD06MMC`: tested for boot-screen `ruu` + MAC display behavior and LCD send-path fixes.
+- `DEVICE_LYWSD03MMC` old hardware (B1.4/B1.5 path): tested for Ruuvi behavior and runtime clock/date cycle handling.
+- `DEVICE_LYWSD03MMC` new hardware (B1.6 path): tested in this workspace flow.
+- `DEVICE_MJWSD06MMC` new MJ6 mods: tested for boot-screen `ruu` + MAC display behavior and LCD send-path fixes.
 
 ## Beacon Formats (Current Workspace)
 

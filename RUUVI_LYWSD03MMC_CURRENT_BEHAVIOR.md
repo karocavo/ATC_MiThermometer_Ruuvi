@@ -21,8 +21,9 @@ This note describes the current custom behavior in this workspace for the Ruuvi-
 
 ## Tested Targets
 
-- `DEVICE_LYWSD03MMC` (Ruuvi runtime behavior, time/date cycle flow).
-- `DEVICE_MJWSD06MMC` (Ruuvi boot `ruu` + MAC sequence, MJ6 LCD mapping/send-path fixes).
+- `DEVICE_LYWSD03MMC` old hardware path (B1.4/B1.5): tested.
+- `DEVICE_LYWSD03MMC` new hardware path (B1.6): tested.
+- `DEVICE_MJWSD06MMC` with new MJ6 Ruuvi display mods: tested.
 
 ## Display behavior
 
