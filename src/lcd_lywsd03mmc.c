@@ -541,26 +541,38 @@ void show_ruuvi_mac(void) {
 	pm_wait_ms(1800);
 	
 	// Blank (show "ruu" only, no number)
-	display_buff[0] = 0;
-	display_buff[1] = 0;
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[3] = LCD_SYM_u; // "u"
+	display_buff[4] = LCD_SYM_u; // "u"
+	display_buff[5] = LCD_SYM_r; // "r"
 	send_to_lcd();
 	pm_wait_ms(200);
 	
 	// Display MAC[1] with "ruu"
+	memset(&display_buff, 0, sizeof(display_buff));
 	display_buff[0] = display_numbers[mac_public[1] & 0x0f];
 	display_buff[1] = display_numbers[mac_public[1] >> 4];
+	display_buff[3] = LCD_SYM_u; // "u"
+	display_buff[4] = LCD_SYM_u; // "u"
+	display_buff[5] = LCD_SYM_r; // "r"
 	send_to_lcd();
 	pm_wait_ms(1800);
 	
 	// Blank
-	display_buff[0] = 0;
-	display_buff[1] = 0;
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[3] = LCD_SYM_u; // "u"
+	display_buff[4] = LCD_SYM_u; // "u"
+	display_buff[5] = LCD_SYM_r; // "r"
 	send_to_lcd();
 	pm_wait_ms(200);
 	
 	// Display MAC[0] (last/lowest byte) with "ruu"
+	memset(&display_buff, 0, sizeof(display_buff));
 	display_buff[0] = display_numbers[mac_public[0] & 0x0f];
 	display_buff[1] = display_numbers[mac_public[0] >> 4];
+	display_buff[3] = LCD_SYM_u; // "u"
+	display_buff[4] = LCD_SYM_u; // "u"
+	display_buff[5] = LCD_SYM_r; // "r"
 	send_to_lcd();
 	pm_wait_ms(1800);
 	
