@@ -20,6 +20,12 @@ while preserving OTA flashing and normal sensor operation.
 - `DEVICE_LYWSD03MMC`: tested for Ruuvi behavior and runtime clock/date cycle handling.
 - `DEVICE_MJWSD06MMC`: tested for boot-screen `ruu` + MAC display behavior and LCD send-path fixes.
 
+## Beacon Formats (Current Workspace)
+
+- Default advertising type is Ruuvi (`ADV_TYPE_DEFAULT = ADV_TYPE_PVVX`).
+- Tested usage is Ruuvi first, BTHome second.
+- Additional formats (ATC/MiHome) are still available unless a target profile disables them with `USE_*_BEACON` in `src/app_config.h`.
+
 **Warning:** 
 * [Firmware version 2.1.1_0159 requires registration in MI-Home and obtaining IDs](https://github.com/pvvx/ATC_MiThermometer/issues/602#issue-2786915630).
 * Xiaomi LYWSD03MMC version B1.5/B1.6 released since 2025.03 are not recommended for purchase due to [high current consumption](https://github.com/pvvx/ATC_MiThermometer/issues/664#issuecomment-3092344109

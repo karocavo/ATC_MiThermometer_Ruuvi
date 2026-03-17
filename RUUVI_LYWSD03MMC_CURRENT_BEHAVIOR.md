@@ -12,6 +12,13 @@ This note describes the current custom behavior in this workspace for the Ruuvi-
   - Measurement interval: 40 seconds
   - LCD stage update threshold: 5 seconds, with practical stage changes following the wake cadence
 
+## Beacon format behavior
+
+- Advertising-type code path supports ATC, Ruuvi (PVVX/custom), MiHome, and BTHome when those format macros are enabled.
+- In this workspace, default advertising type is Ruuvi (`ADV_TYPE_DEFAULT = ADV_TYPE_PVVX`).
+- Tested workflow focused on Ruuvi (primary) and BTHome (secondary).
+- For strict RAM-focused profiles, extra formats can be disabled per target by `USE_*_BEACON` defines in `src/app_config.h`.
+
 ## Tested Targets
 
 - `DEVICE_LYWSD03MMC` (Ruuvi runtime behavior, time/date cycle flow).
