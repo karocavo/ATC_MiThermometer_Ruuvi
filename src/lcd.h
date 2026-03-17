@@ -252,7 +252,7 @@ void show_ota_screen(void);
 #define SHOW_OTA_SCREEN() show_ota_screen()
 #define SET_LCD_UPDATE() { lcd_flg.update = 1; lcd_flg.update_next_measure = 0; }
 #define SHOW_CONNECTED_SYMBOL(a) { lcd_flg.update = 1; lcd_flg.update_next_measure = 0; }
-#define POWERUP_SCREEN	0
+#define POWERUP_SCREEN	1
 void show_reboot_screen(void);
 #define SHOW_REBOOT_SCREEN() show_reboot_screen()
 #define LCD_BUF_SIZE	6

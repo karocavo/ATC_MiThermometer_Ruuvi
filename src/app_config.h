@@ -2614,6 +2614,7 @@ GPIO_D7 - SDA
 		| SERVICE_TIME_ADJUST \
 		| SERVICE_TH_TRG \
 		| SERVICE_MI_KEYS \
+		| SERVICE_HARD_CLOCK \
 )
 
 #define USE_EPD				0 // min update time ms

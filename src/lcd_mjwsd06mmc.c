@@ -6,6 +6,9 @@
 #include "app.h"
 #include "i2c.h"
 #include "lcd.h"
+#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
+#include "rtc.h"
+#endif
 
 RAM u8 lcd_i2c_addr;
 
@@ -63,6 +66,8 @@ const u8 display_numbers[] = {
 #define LCD_SYM1_L  0b10000101 // "L"
 #define LCD_SYM1_o  0b11000110 // "o"
 #define LCD_SYM1_t  0b10000111 // "t"
+#define LCD_SYM1_r  0b01000010 // "r" (segments: top, top-left, middle)
+#define LCD_SYM1_u  0b11000100 // "u" (segments: left, bottom, right sides)
 #define LCD_SYM1_0  0b11110101 // "0"
 #define LCD_SYM1_A  0b01110111 // "A"
 #define LCD_SYM1_a  0b11110110 // "a"
@@ -271,18 +276,203 @@ void show_ota_screen(void) {
 	lcd_send_i2c_byte(0xf2);
 }
 
-// #define SHOW_REBOOT_SCREEN()
-void show_reboot_screen(void) {
-	display_buff[0] = 0; // " "
-	display_buff[1] = 0; // " "
-	display_buff[2] = 0; // " "
-	display_buff[3] = LCD_SYM1_o; // "o"
-	display_buff[4] = LCD_SYM1_o; // "o"
-	display_buff[5] = LCD_SYM1_o; // "o"
+// Ruuvi branding with MAC display
+/* Display format on boot:
+   Shows "ruu" with last 3 bytes of MAC address cycling
+   Each MAC byte displayed for 1.8 sec with 0.2 sec blank between
+   Total: ~6 seconds boot screen
+ */
+void show_ruuvi_mac(void) {
+	extern u8 mac_public[6];
+	
+	// Give LCD controller time to stabilize after init
+	pm_wait_ms(100);
+	
+	// Display MAC[2] with "ruu" 
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[0] = display_numbers[mac_public[2] & 0x0f];    // MAC low nibble (right digit)
+	display_buff[1] = display_numbers[mac_public[2] >> 4];      // MAC high nibble (left digit)
+	display_buff[3] = LCD_SYM1_u; // "u"
+	display_buff[4] = LCD_SYM1_u; // "u"
+	display_buff[5] = LCD_SYM1_r; // "r"
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Blank (show "ruu" only, no number)
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[3] = LCD_SYM1_u; // "u"
+	display_buff[4] = LCD_SYM1_u; // "u"
+	display_buff[5] = LCD_SYM1_r; // "r"
+	send_to_lcd();
+	pm_wait_ms(200);
+	
+	// Display MAC[1] with "ruu"
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[0] = display_numbers[mac_public[1] & 0x0f];
+	display_buff[1] = display_numbers[mac_public[1] >> 4];
+	display_buff[3] = LCD_SYM1_u; // "u"
+	display_buff[4] = LCD_SYM1_u; // "u"
+	display_buff[5] = LCD_SYM1_r; // "r"
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Blank
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[3] = LCD_SYM1_u; // "u"
+	display_buff[4] = LCD_SYM1_u; // "u"
+	display_buff[5] = LCD_SYM1_r; // "r"
+	send_to_lcd();
+	pm_wait_ms(200);
+	
+	// Display MAC[0] (last/lowest byte) with "ruu"
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[0] = display_numbers[mac_public[0] & 0x0f];
+	display_buff[1] = display_numbers[mac_public[0] >> 4];
+	display_buff[3] = LCD_SYM1_u; // "u"
+	display_buff[4] = LCD_SYM1_u; // "u"
+	display_buff[5] = LCD_SYM1_r; // "r"
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Clear for normal operation
+	memset(&display_buff, 0, sizeof(display_buff));
 	send_to_lcd();
 }
 
+// #define SHOW_REBOOT_SCREEN()
+void show_reboot_screen(void) {
+	show_ruuvi_mac();
+}
+
 #if	USE_DISPLAY_CLOCK
+static u32 get_display_time_sec(void) {
+	// Prefer running SW clock; use RTC only if SW clock is not initialized.
+	u32 ut = wrk.utc_time_sec;
+#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
+	if (ut < 946684800) { // 2000-01-01
+		u32 rtc_ut = rtc_get_utime();
+		if (rtc_ut >= 946684800) {
+			ut = rtc_ut;
+		}
+	}
+#endif
+	return ut;
+}
+
+// EU DST rules: Last Sunday of March 01:00 UTC to last Sunday of October 01:00 UTC
+// Returns 1 if DST is active, 0 if not
+_attribute_ram_code_
+static u8 is_dst_active_eu(u32 year, u8 month, u8 day, u8 hour) {
+	// DST active from last Sunday of March 01:00 UTC to last Sunday of October 01:00 UTC
+	if (month < 3 || month > 10) return 0;  // Jan, Feb, Nov, Dec = standard time
+	if (month > 3 && month < 10) return 1;  // Apr-Sep = DST
+	
+	// Find last Sunday of March or October
+	u8 last_sunday;
+	if (month == 3 || month == 10) {
+		// Calculate day of week for last day of month
+		// Use Zeller's congruence (modified for Gregorian calendar)
+		u8 last_day = (month == 3) ? 31 : 31;
+		u32 y = year;
+		u32 m = month;
+		u32 q = last_day;
+		u32 h = (q + (13*(m+1))/5 + y + y/4 - y/100 + y/400) % 7;
+		// h = day of week (0=Sat, 1=Sun, 2=Mon, ...)
+		// Convert: we want Sunday=0
+		h = (h + 6) % 7; // Now: 0=Sun, 1=Mon, ...
+		
+		// Calculate last Sunday
+		last_sunday = last_day - h;
+		
+		if (month == 3) {
+			// March: DST starts at 01:00 UTC on last Sunday
+			if (day < last_sunday) return 0;
+			if (day > last_sunday) return 1;
+			if (hour >= 1) return 1;
+			return 0;
+		} else { // October
+			// October: DST ends at 01:00 UTC on last Sunday
+			if (day < last_sunday) return 1;
+			if (day > last_sunday) return 0;
+			if (hour >= 1) return 0;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+#if (DEV_SERVICES & SERVICE_HARD_CLOCK)
+
+void show_local_time(void) {
+	u32 utc_check = get_display_time_sec();
+	rtc_time_t utc_rtc;
+	utime_to_rtc(utc_check, &utc_rtc);
+	u32 year = 2000 + utc_rtc.year;
+	u8 month = utc_rtc.month;
+	u8 day = utc_rtc.days;
+	u8 hour = utc_rtc.hours;
+	
+	// Update DST active flag if DST is enabled
+	if (cfg.flg_dst & 0x01) { // DST feature enabled
+		if (is_dst_active_eu(year, month, day, hour)) {
+			cfg.flg_dst |= 0x02; // Set DST active bit
+		} else {
+			cfg.flg_dst &= ~0x02; // Clear DST active bit
+		}
+	}
+	
+	s32 local_sec = utc_check + ((s32)cfg.tz_offset * 3600);
+	if ((cfg.flg_dst & 0x01) && (cfg.flg_dst & 0x02)) {
+		local_sec += 3600;
+	}
+	rtc_time_t local_rtc;
+	utime_to_rtc((u32)local_sec, &local_rtc);
+	u8 min = local_rtc.minutes;
+	u8 hrs = local_rtc.hours;
+
+	// Time format (match native show_clock layout): big HH at [4][3], small MM at [1][0]
+	display_buff[0] = display_small_numbers[min % 10];
+	display_buff[1] = display_small_numbers[min / 10 % 10];
+	display_buff[2] = 0;
+	display_buff[3] = display_numbers[hrs % 10];
+	display_buff[4] = display_numbers[hrs / 10 % 10];
+	display_buff[5] = 0;
+}
+
+void show_date_with_dst(void) {
+	s32 local_sec = get_display_time_sec() + ((s32)cfg.tz_offset * 3600);
+	if ((cfg.flg_dst & 0x01) && (cfg.flg_dst & 0x02)) {
+		local_sec += 3600;
+	}
+	rtc_time_t local_rtc;
+	utime_to_rtc((u32)local_sec, &local_rtc);
+	u8 month = local_rtc.month;
+	u8 day = local_rtc.days;
+	u8 year_2digit = local_rtc.year;
+	
+	// Display format:
+	// Big display shows MMDD encoded as 4-digit number using [5][4][3]
+	// (byte [5] carries thousands marker and hundreds digit), small shows YY in [1][0]
+	u16 mmdd = (u16)month * 100 + day;
+	display_buff[5] = 0;
+	if (mmdd > 999) display_buff[5] |= 0x08; // thousands marker "1"
+	if (mmdd > 99) display_buff[5] |= display_numbers[(mmdd / 100) % 10]; // hundreds
+	display_buff[4] = display_numbers[(mmdd / 10) % 10]; // tens
+	display_buff[3] = display_numbers[mmdd % 10]; // ones
+
+	// Small digits [1][0] = YY
+	display_buff[1] = display_small_numbers[year_2digit / 10]; // Year tens
+	display_buff[0] = display_small_numbers[year_2digit % 10]; // Year units
+	
+	// DST indicator uses only LCD segment 2.6 (bit 0x40) in symbol field.
+	// Do not render full F/C symbols here.
+	display_buff[2] &= ~0xE0; // clear temp-symbol bits first
+	if ((cfg.flg_dst & 0x01) && (cfg.flg_dst & 0x02)) {
+		display_buff[2] |= BIT(6); // segment 2.6 on when DST active
+	}
+}
+
+#endif // DEV_SERVICES & SERVICE_HARD_CLOCK
 _attribute_ram_code_
 void show_clock(void) {
 	u32 tmp = wrk.utc_time_sec / 60;
