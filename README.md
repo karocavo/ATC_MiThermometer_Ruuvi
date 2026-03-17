@@ -1,5 +1,13 @@
 # Custom firmware for BLE thermometers on the Telink chipset.
 
+## What This Repository Does (Ruuvi-Focused)
+
+This repository is a Telink BLE thermometer firmware workspace with a Ruuvi-focused custom implementation.
+It keeps upstream ATC_MiThermometer device support, and adds/maintains Ruuvi RAWv2 advertising behavior,
+boot-screen branding work, and per-device display/runtime fixes (including LYWSD03MMC and MJWSD06MMC).
+Primary usage in this workspace is stable Ruuvi-compatible broadcasting for integrations such as Victron,
+while preserving OTA flashing and normal sensor operation.
+
 **Warning:** 
 * [Firmware version 2.1.1_0159 requires registration in MI-Home and obtaining IDs](https://github.com/pvvx/ATC_MiThermometer/issues/602#issue-2786915630).
 * Xiaomi LYWSD03MMC version B1.5/B1.6 released since 2025.03 are not recommended for purchase due to [high current consumption](https://github.com/pvvx/ATC_MiThermometer/issues/664#issuecomment-3092344109

@@ -1,5 +1,11 @@
 # ATC_MiThermometer - BTHome & Ruuvi Configuration
 
+## What This Repository Does
+
+This repository provides custom firmware configuration and code paths for Ruuvi RAWv2 broadcasting on
+ATC_MiThermometer-supported Telink hardware. In this workspace, Ruuvi mode is treated as a primary target,
+with BTHome as the secondary option, plus device-specific compatibility fixes needed for dependable field use.
+
 ## Summary of Changes
 
 ### 1. Disabled Unused Beacon Types (RAM space savings)

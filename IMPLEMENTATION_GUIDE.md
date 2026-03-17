@@ -1,5 +1,11 @@
 # Ruuvi Implementation Guide - Code Changes
 
+## What This Repository Does
+
+This workspace customizes ATC_MiThermometer firmware to prioritize Ruuvi RAWv2 output on supported Telink devices.
+It documents and implements practical device-specific changes such as boot-screen behavior, display mapping fixes,
+clock/display cycle handling, and beacon-mode defaults required for reliable Ruuvi-style operation.
+
 This guide provides step-by-step code changes to fix the boot screen, update intervals, and set Ruuvi as default.
 
 ---
