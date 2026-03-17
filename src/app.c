@@ -884,7 +884,7 @@ void user_init_normal(void) {//this will get executed one time after power up
 	memcpy(&ext, &def_ext, sizeof(ext));
 	lcd_flg.chow_ext_ut = 0;
 	lcd_flg.b.ext_data_buf = 0;
-	lcd_flg.show_clock_after_disconnect = 1; // default behavior after boot: 30-10-10 (if time valid)
+	lcd_flg.show_clock_after_disconnect = cfg.flg.show_time_smile; // follow config at boot; runtime command may still override later
 #endif
 	init_ble();
 #if (POWERUP_SCREEN) || (DEV_SERVICES & SERVICE_HARD_CLOCK)

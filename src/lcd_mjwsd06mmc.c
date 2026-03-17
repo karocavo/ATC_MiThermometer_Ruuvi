@@ -67,7 +67,7 @@ const u8 display_numbers[] = {
 #define LCD_SYM1_o  0b11000110 // "o"
 #define LCD_SYM1_t  0b10000111 // "t"
 #define LCD_SYM1_r  0b00000110 // "r" (MJ6: segments e+g)
-#define LCD_SYM1_u  0b01110101 // "u" (MJ6: segments b+c+d+e+f)
+#define LCD_SYM1_u  0b11000100 // "u" (MJ6: segments .2,.6,.7)
 #define LCD_SYM1_0  0b11110101 // "0"
 #define LCD_SYM1_A  0b01110111 // "A"
 #define LCD_SYM1_a  0b11110110 // "a"
