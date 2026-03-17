@@ -17,7 +17,9 @@ Device goal: Boiler water control via Victron Cerbo GX / Venus OS using Ruuvi-st
 ## 2. Hardware Integration (DS18B20)
 
 - [ ] Choose connector style (mini plug) and board pad routing.
-- [ ] Use one-wire pad from config mapping (ONEWIRE1 first).
+- [ ] Use one-wire pad from config mapping (hardware-accessible first).
+  - [ ] LYWSD03 B1.4 note: no practical PD2 pad; prefer PB6 (P5 test pad) for Dallas wiring.
+  - [ ] MJ6 note: prefer PB6 for Dallas if PD2 remains reserved for KEY.
 - [ ] Add 4.7k pull-up to VCC near MCU.
 - [ ] Validate cable length/noise on immersed probe.
 - [ ] Define disconnected state detection (open line, no ROM, CRC fail).
@@ -118,3 +120,4 @@ Use these first after reopening workspace:
 
 - 2026-03-16: Branch tracking fixed for karocavo-ruuvi-rawv2. Workspace currently clean.
 - 2026-03-16: Ruuvi time/date mod confirmed present on master history path.
+- 2026-03-17: Pin decision update: LYWSD03 B1.4 has no usable PD2 pad; use PB6/P5 as Dallas candidate.
