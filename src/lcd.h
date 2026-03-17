@@ -259,6 +259,10 @@ void show_reboot_screen(void);
 #define SHOW_SMILEY		1
 extern u8 display_buff[LCD_BUF_SIZE], display_cmp_buff[LCD_BUF_SIZE+1];
 void show_small_number(s16 number, bool percent); // -9 .. 99
+#if USE_DISPLAY_CLOCK
+void show_local_time(void);
+void show_date_with_dst(void);
+#endif
 
 #else
 #error "Set DEVICE_TYPE!"

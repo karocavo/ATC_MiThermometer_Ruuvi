@@ -398,14 +398,16 @@ void cmd_parser(void * p) {
 #endif // DEV_SERVICES & SERVICE_SCREEN
 		} else if (cmd == CMD_ID_CFG) { // Get/set config
 			u8 tmp = ((volatile u8 *)&cfg.flg2)[0];
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) || (DEVICE_TYPE == DEVICE_MJWSD06MMC)
+			u8 prev_show_time_smile = cfg.flg.show_time_smile;
+#endif
 #if	USE_SENSOR_SCD41
 			u8 tst2 = ((volatile u8 *)&cfg.flg)[0];
 #endif
 			if (len) {
-				u8 prev_show_time_smile = cfg.flg.show_time_smile;
 				if (len > sizeof(cfg)) len = sizeof(cfg);
 				memcpy(&cfg, &req->dat[1], len);
-#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) || (DEVICE_TYPE == DEVICE_MJWSD06MMC)
 				if (cfg.flg.show_time_smile != prev_show_time_smile) {
 					if (cfg.flg.show_time_smile) {
 						if (wrk.ble_connected) {
@@ -447,7 +449,7 @@ void cmd_parser(void * p) {
 		} else if (cmd == CMD_ID_CFG_DEF) { // Set default config
 			u8 tmp = ((volatile u8 *)&cfg.flg2)[0];
 			memcpy(&cfg, &def_cfg, sizeof(cfg));
-#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) || (DEVICE_TYPE == DEVICE_MJWSD06MMC)
 			lcd_flg.show_clock_after_disconnect = 0;
 #endif
 			test_config();
@@ -579,7 +581,7 @@ void cmd_parser(void * p) {
 			if (len) {
 				if (len > sizeof(display_buff))
 					len = sizeof(display_buff);
-#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) || (DEVICE_TYPE == DEVICE_MJWSD06MMC)
 				if (wrk.ble_connected) {
 					// WebUI "Send clock data on LCD" should arm post-disconnect 30-10-10.
 					lcd_flg.show_clock_after_disconnect = 1;
@@ -605,7 +607,7 @@ void cmd_parser(void * p) {
 		} else if (cmd == CMD_ID_LCD_FLG) { // Start/stop notify lcd dump and ...
 			 if (len)
 				 lcd_flg.all_flg = req->dat[1];
-#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) || (DEVICE_TYPE == DEVICE_MJWSD06MMC)
 			 if (len && req->dat[1] == 0) {
 				 // WebUI "Repair LCD" sends 0x61,0: also disable runtime post-disconnect 30-10-10 override.
 				 lcd_flg.show_clock_after_disconnect = 0;

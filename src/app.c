@@ -1249,6 +1249,7 @@ void main_loop(void) {
 			{
 #if (DEV_SERVICES & SERVICE_SCREEN)
 				// For display devices, trigger measurements on LCD update timer
+#if !((DEVICE_TYPE == DEVICE_MJWSD05MMC) || (DEVICE_TYPE == DEVICE_MJWSD05MMC_EN))
 				if((wrk.ble_connected && (new - wrk.tim_measure >= wrk.measurement_step_time))
 					|| (new - lcd_flg.tim_last_chow >= lcd_flg.min_step_time_update_lcd)) {
 					if(wrk.ble_connected) {
@@ -1257,6 +1258,15 @@ void main_loop(void) {
 					}
 					wrk.start_measure = 1;
 				}
+#else
+				if(wrk.ble_connected) {
+					if (new - wrk.tim_measure >= wrk.measurement_step_time) {
+						wrk.tim_measure = new;
+						adv_buf.meas_count = 0;
+						wrk.start_measure = 1;
+					}
+				}
+#endif
 #else
 				if(wrk.ble_connected) {
 					if (new - wrk.tim_measure >= wrk.measurement_step_time) {

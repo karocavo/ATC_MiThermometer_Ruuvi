@@ -76,7 +76,7 @@ void lcd(void) {
 	bool allow_legacy_clock = cfg.flg.show_time_smile;
 
 #if USE_DISPLAY_CLOCK
-#if (DEVICE_TYPE == DEVICE_LYWSD03MMC)
+#if (DEVICE_TYPE == DEVICE_LYWSD03MMC) || (DEVICE_TYPE == DEVICE_MJWSD06MMC)
 	// Runtime clock-cycle mode for LYWSD03MMC:
 	// boot default = enabled, Repair LCD = disabled, Show clock command = enabled.
 	bool cycle_301010 = lcd_flg.show_clock_after_disconnect;
