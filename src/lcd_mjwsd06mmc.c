@@ -145,6 +145,7 @@ void send_to_lcd(void){
 	if(cfg.flg2.screen_off)
 		return;
 	if(lcd_i2c_addr) {
+		memcpy(display_cmp_buff, display_buff, sizeof(display_buff));
 		lcd_send_i2c_buf(display_cmp_buff, sizeof(display_cmp_buff));
 	}
 }
