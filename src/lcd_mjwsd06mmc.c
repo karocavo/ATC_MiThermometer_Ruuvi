@@ -272,15 +272,60 @@ void show_ota_screen(void) {
 	lcd_send_i2c_byte(0xf2);
 }
 
+// Ruuvi branding with MAC display
+/* Display format on boot:
+   Shows MAC bytes with "ruu" symbols cycling
+   Each MAC byte displayed for 1.8 sec with 0.2 sec blank between
+   Total: ~6 seconds boot screen
+ */
+void show_ruuvi_mac(void) {
+	extern u8 mac_public[6];
+	
+	// Give LCD controller time to stabilize after init
+	pm_wait_ms(100);
+	
+	// Display MAC[2] with "i" prefix (right digit only)
+	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[0] = display_numbers[mac_public[2] & 0x0f];    // MAC low nibble (right digit)
+	display_buff[1] = display_numbers[mac_public[2] >> 4];      // MAC high nibble (left digit)
+	display_buff[3] = LCD_SYM1_i; // "i"
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Blank
+	display_buff[0] = 0;
+	display_buff[1] = 0;
+	send_to_lcd();
+	pm_wait_ms(200);
+	
+	// Display MAC[1]
+	display_buff[0] = display_numbers[mac_public[1] & 0x0f];
+	display_buff[1] = display_numbers[mac_public[1] >> 4];
+	display_buff[3] = LCD_SYM1_i;
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Blank
+	display_buff[0] = 0;
+	display_buff[1] = 0;
+	send_to_lcd();
+	pm_wait_ms(200);
+	
+	// Display MAC[0] (last/lowest byte)
+	display_buff[0] = display_numbers[mac_public[0] & 0x0f];
+	display_buff[1] = display_numbers[mac_public[0] >> 4];
+	display_buff[3] = LCD_SYM1_i;
+	send_to_lcd();
+	pm_wait_ms(1800);
+	
+	// Clear for normal operation
+	memset(&display_buff, 0, sizeof(display_buff));
+	send_to_lcd();
+}
+
 // #define SHOW_REBOOT_SCREEN()
 void show_reboot_screen(void) {
-	display_buff[0] = 0; // " "
-	display_buff[1] = 0; // " "
-	display_buff[2] = 0; // " "
-	display_buff[3] = LCD_SYM1_o; // "o"
-	display_buff[4] = LCD_SYM1_o; // "o"
-	display_buff[5] = LCD_SYM1_o; // "o"
-	send_to_lcd();
+	show_ruuvi_mac();
 }
 
 #if	USE_DISPLAY_CLOCK
