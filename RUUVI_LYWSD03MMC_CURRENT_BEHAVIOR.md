@@ -1,22 +1,22 @@
-# Ruuvi LYWSD03MMC Current Behavior
+# Ruuvi Current Behavior (LYWSD03MMC + MJWSD06MMC)
 
-This note describes the current custom behavior in this workspace for the LYWSD03MMC Ruuvi-oriented build.
+This note describes the current custom behavior in this workspace for the Ruuvi-oriented builds on LYWSD03MMC and MJWSD06MMC.
 
 ## Firmware identity
 
 - Firmware version is `V5.8` (`VERSION = 0x58`).
-- Device type is forced to `DEVICE_LYWSD03MMC` in the build.
-- Current default timing for this build is:
+- Build target is selected by make flag (for example `-DDEVICE_TYPE=DEVICE_LYWSD03MMC` or `-DDEVICE_TYPE=DEVICE_MJWSD06MMC`).
+- Current default timing for this workspace is:
   - Advertising interval: 10 seconds
   - Measurement interval: 40 seconds
   - LCD stage update threshold: 5 seconds, with practical stage changes following the wake cadence
 
 ## Display behavior
 
-### Normal boot behavior
+### LYWSD03MMC normal behavior
 
 - On boot, the firmware clears any stale external LCD override state.
-- After boot, the device defaults to the custom `30-10-10` cycle only when the internal UTC time is valid.
+- After boot, clock cycling follows config (`cfg.flg.show_time_smile`) instead of being force-enabled.
 - If UTC time is not valid yet, the LCD stays on temperature and humidity only.
 
 ### `30-10-10` cycle
@@ -27,7 +27,16 @@ When enabled and time is valid, the LYWSD03MMC display uses this cycle:
 - 10 seconds: local time
 - 10 seconds: local date
 
-The cycle is controlled at runtime by `lcd_flg.show_clock_after_disconnect` instead of relying only on the legacy `show_time_smile` config flag.
+The cycle is controlled at runtime by `lcd_flg.show_clock_after_disconnect`, with boot default now synced from `show_time_smile`.
+
+### MJWSD06MMC normal behavior
+
+- `POWERUP_SCREEN` is enabled.
+- Boot screen shows Ruuvi branding + MAC sequence:
+  - big digits show `r u u`
+  - small digits show MAC byte hex pairs (cycling low 3 MAC bytes)
+- MJ6 LCD send path uses correct compare-buffer layout (`display_cmp_buff[0]` header, payload from `[1]`).
+- MJ6 clock/date helpers are present and use the same UTC/tz/DST logic as LYWSD03 path.
 
 ### Clock OFF vs Clock ON
 
@@ -76,7 +85,7 @@ The cycle is controlled at runtime by `lcd_flg.show_clock_after_disconnect` inst
 - `src/app.c`
   - safer boot wait
   - LCD override reset on boot
-  - runtime default enabling of post-disconnect clock cycle
+  - runtime clock-cycle boot default follows config flag
 - `src/app_config.h`
   - firmware version bump to `V5.8`
 - `src/cmd_parser.c`
@@ -90,13 +99,18 @@ The cycle is controlled at runtime by `lcd_flg.show_clock_after_disconnect` inst
 - `src/lcd_lywsd03mmc.c`
   - local time/date display helpers
   - DST-aware rendering using RTC conversion helpers
+- `src/lcd_mjwsd06mmc.c`
+  - MJ6 boot-screen `ruu` + MAC sequence
+  - MJ6 buffer/send fixes for LCD payload transmission
+  - MJ6 local time/date display helpers
 
 ## Practical result
 
-The current build is aimed at this workflow:
+The current workspace behavior is aimed at this workflow:
 
-- Fresh boot with valid time: `30-10-10`
+- LYWSD03 fresh boot with clock enabled and valid time: `30-10-10`
 - Fresh boot without valid time: temp/humidity only
 - Set time in WebUI: device shows correct local clock/date behavior
 - Use `Show clock`: device clock appears immediately and `30-10-10` remains active after disconnect
 - Use `Repair LCD`: runtime clock cycle is disabled and temp/humidity-only mode persists after disconnect
+- MJ6 fresh boot: `ruu` + MAC sequence, then normal measurement display
