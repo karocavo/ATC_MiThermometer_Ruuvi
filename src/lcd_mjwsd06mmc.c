@@ -66,8 +66,8 @@ const u8 display_numbers[] = {
 #define LCD_SYM1_L  0b10000101 // "L"
 #define LCD_SYM1_o  0b11000110 // "o"
 #define LCD_SYM1_t  0b10000111 // "t"
-#define LCD_SYM1_r  0b01000010 // "r" (segments: top, top-left, middle)
-#define LCD_SYM1_u  0b11000100 // "u" (segments: left, bottom, right sides)
+#define LCD_SYM1_r  0b00000110 // "r" (MJ6: segments e+g)
+#define LCD_SYM1_u  0b01110101 // "u" (MJ6: segments b+c+d+e+f)
 #define LCD_SYM1_0  0b11110101 // "0"
 #define LCD_SYM1_A  0b01110111 // "A"
 #define LCD_SYM1_a  0b11110110 // "a"
@@ -289,43 +289,49 @@ void show_ruuvi_mac(void) {
 	// Give LCD controller time to stabilize after init
 	pm_wait_ms(100);
 	
-	// Display MAC[2]
+	// Display MAC[2] with "ruu" on big digits
 	memset(&display_buff, 0, sizeof(display_buff));
-	display_buff[0] = display_numbers[mac_public[2] & 0x0f];    // MAC low nibble
-	display_buff[1] = display_numbers[mac_public[2] >> 4];      // MAC high nibble
-	display_buff[3] = display_numbers[0];                       // "0" as padding
-	display_buff[4] = display_numbers[0];                       // "0" as padding
-	display_buff[5] = display_numbers[0];                       // "0" as padding
+	display_buff[0] = display_small_numbers[mac_public[2] & 0x0f]; // small right hex
+	display_buff[1] = display_small_numbers[mac_public[2] >> 4];   // small left hex
+	display_buff[3] = LCD_SYM1_u;
+	display_buff[4] = LCD_SYM1_u;
+	display_buff[5] = LCD_SYM1_r;
 	send_to_lcd();
 	pm_wait_ms(1800);
 	
-	// Blank
+	// Gap: keep "ruu" visible, clear MAC digits
 	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[3] = LCD_SYM1_u;
+	display_buff[4] = LCD_SYM1_u;
+	display_buff[5] = LCD_SYM1_r;
 	send_to_lcd();
 	pm_wait_ms(200);
 	
-	// Display MAC[1]
+	// Display MAC[1] with "ruu"
 	memset(&display_buff, 0, sizeof(display_buff));
-	display_buff[0] = display_numbers[mac_public[1] & 0x0f];
-	display_buff[1] = display_numbers[mac_public[1] >> 4];
-	display_buff[3] = display_numbers[0];
-	display_buff[4] = display_numbers[0];
-	display_buff[5] = display_numbers[0];
+	display_buff[0] = display_small_numbers[mac_public[1] & 0x0f];
+	display_buff[1] = display_small_numbers[mac_public[1] >> 4];
+	display_buff[3] = LCD_SYM1_u;
+	display_buff[4] = LCD_SYM1_u;
+	display_buff[5] = LCD_SYM1_r;
 	send_to_lcd();
 	pm_wait_ms(1800);
 	
-	// Blank
+	// Gap: keep "ruu" visible, clear MAC digits
 	memset(&display_buff, 0, sizeof(display_buff));
+	display_buff[3] = LCD_SYM1_u;
+	display_buff[4] = LCD_SYM1_u;
+	display_buff[5] = LCD_SYM1_r;
 	send_to_lcd();
 	pm_wait_ms(200);
 	
-	// Display MAC[0]
+	// Display MAC[0] with "ruu"
 	memset(&display_buff, 0, sizeof(display_buff));
-	display_buff[0] = display_numbers[mac_public[0] & 0x0f];
-	display_buff[1] = display_numbers[mac_public[0] >> 4];
-	display_buff[3] = display_numbers[0];
-	display_buff[4] = display_numbers[0];
-	display_buff[5] = display_numbers[0];
+	display_buff[0] = display_small_numbers[mac_public[0] & 0x0f];
+	display_buff[1] = display_small_numbers[mac_public[0] >> 4];
+	display_buff[3] = LCD_SYM1_u;
+	display_buff[4] = LCD_SYM1_u;
+	display_buff[5] = LCD_SYM1_r;
 	send_to_lcd();
 	pm_wait_ms(1800);
 	
