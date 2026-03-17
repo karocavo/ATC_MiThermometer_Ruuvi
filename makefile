@@ -99,6 +99,15 @@ all: clean pre-build main-build
 
 build: pre-build main-build
 
+test-bins:
+	@echo "Building LYWSD03MMC test binary..."
+	@$(MAKE) clean pre-build main-build POJECT_DEF="-DDEVICE_TYPE=DEVICE_LYWSD03MMC"
+	@cp -f $(BIN_FILE) ./LYWSD03_ruuvi_test.bin
+	@echo "Building MJWSD06MMC test binary..."
+	@$(MAKE) clean pre-build main-build POJECT_DEF="-DDEVICE_TYPE=DEVICE_MJWSD06MMC"
+	@cp -f $(BIN_FILE) ./MJ6_ruuvi_test.bin
+	@echo "Done: created ./LYWSD03_ruuvi_test.bin and ./MJ6_ruuvi_test.bin"
+
 
 flash: $(BIN_FILE)
 	@$(PYTHON) $(PROJECT_PATH)/../TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z11 -a-70 -m -w we 0 $(BIN_FILE)
